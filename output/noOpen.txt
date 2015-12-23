@@ -1,0 +1,13 @@
+
+aa */ bb */
+
+"comment inside // means no comment" 
+this line start 
+and
+this
+lines
+will be
+removed */
+which will
+remove this
+also */

@@ -1,0 +1,9 @@
+exemplo teste;
+
+float f = 3a;
+
+char flag = 'teste'; 
+
+if (f >= 10) | (f < )
+	write("mensagem);	
+	 
