@@ -2,12 +2,12 @@
 aa */ bb */
 " open string /* with anything */ // means no comment
 "comment inside // means no comment" //" valid line comment  /* but this comment wont open
-this line start /* can be commented
+this line start /*has inline comments*//*much wow*//*and can be commented
 and
-this
+these
 lines
 will be
 removed *//* and I can start a new comment
 which will
 remove this
-also */
+also */valid!

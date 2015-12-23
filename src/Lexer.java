@@ -14,6 +14,9 @@ public class Lexer {
 		return null;
 	}
 
+	
+	
+	
 	public static LexIO removeUnclosedStuff(LexIO io) {
 		
 		LexIO lexOut = new LexIO(io);
@@ -50,21 +53,23 @@ public class Lexer {
 		}
 		
 		/*
-		 * 
-		 * 
 		 * Comentários de linha podem ser // desde que não exista um comentário aberto antes
 		 * 
-		  
-		 	exemplo: o // não é comentário de linha, pois o /* anterior existe; 
-		 	 *//*
-		  
-		*
-		* 
-		* 
-		* Comentários de linha também não são considerados dentro de strings válidas
-		* Como a engine é gulosa, um match na string é suficiente.
-		* 
-		*/
+		 * Comentários de linha também não são considerados dentro de strings válidas
+		 * Como a engine é gulosa, um match na string é suficiente.
+		 * 
+		 * Este while alterna entre dois estados: comentário aberto / comentário fechado
+		 * No comentário fechado, ele tenta dar match em 3 possíveis combinações: 
+		 * -Comentário de bloco em linha;
+		 * -Comentário de linha usando //
+		 * -Início de comentário de bloco
+		 * 
+		 * 
+		 * No comentário aberto, ele consome as linhas seguintes até encontrar um padrão de
+		 * fechar comentário de bloco 
+		 * 
+		 */
+		
 		String lineComments;
 		
 		
@@ -74,117 +79,58 @@ public class Lexer {
 		 * 
 		 * "    */
 
-		lineComments = validStrings + "|" + lineCommentStart + "|" + inlineBlockComment + "|" + blockCommentStart + "|" + blockCommentEnd;
+		lineComments = validStrings + "|" +  inlineBlockComment + "|" + lineCommentStart + "|" + blockCommentStart;
+		
+		String openCommentPattern = blockCommentEnd + "|" + "(^.*?$)";
 		lineNumber = 0;
 		while(lineNumber < lines.length) {
+			Pattern pattern;
+			if(isBlockCommentOpen)
+				pattern = Pattern.compile(openCommentPattern);
+			else
+				pattern = Pattern.compile(lineComments);
 			
-			Pattern pattern = Pattern.compile(lineComments);
 			Matcher matcher = pattern.matcher(lines[lineNumber]);
-			
-			
-			/*
-			if(isBlockCommentOpen) {
-				Pattern pattern = Pattern.compile(blockCommentEnd);
-				Matcher matcher = pattern.matcher(lines[lineNumber]);
-				if(matcher.find()) {
-					System.out.println(matcher.group(1) + "   closing comment block on line " + lineNumber);
-					lines[lineNumber] = lines[lineNumber].replace(matcher.group(1), "");
-					isBlockCommentOpen = false;
-					continue;
-				}
-				
-				System.out.println("comment block open, deleting line " + lineNumber);
-				lines[lineNumber] = "";
-				
-			} else {
-				Pattern pattern = Pattern.compile(validStrings);
-				Matcher matcher = pattern.matcher(lines[lineNumber]);
-				
-				if(matcher.find()) {
-					System.out.println(matcher.group(1) + "   found valid string " + lineNumber);
-					startIndex = matcher.start();
-					startLen = matcher.end();
-				}
-				
-				pattern = Pattern.compile(inlineBlockComment);
-				matcher = pattern.matcher(lines[lineNumber]);
 
-				if(matcher.find()) {
-					
-					if(matcher.start() <= startIndex) {
-						System.out.println(matcher.group(1) + "   removing inline comment block " + lineNumber);
-						lines[lineNumber] = lines[lineNumber].replace(matcher.group(1), "");
-						continue;
-					}
-				}
-				
-				pattern = Pattern.compile(lineCommentStart);
-				matcher = pattern.matcher(lines[lineNumber]);
-				if(matcher.find()) {
-					if(matcher.start() <= startIndex) {
-						System.out.println(matcher.group(1) + "   removing line comment " + lineNumber);
-						lines[lineNumber] = lines[lineNumber].replace(matcher.group(1), "");
-					}
-					continue;
-				}
-				
-				
-				
-				pattern = Pattern.compile(blockCommentStart);
-				matcher = pattern.matcher(lines[lineNumber]);
-				if(matcher.find()) {
-					System.out.println(matcher.group(1) + "   opening comment block on line " + lineNumber);
-					lines[lineNumber] = lines[lineNumber].replace(matcher.group(1), "");
-					isBlockCommentOpen = true;
-					continue;
-				}
-
-			}
-			lineNumber++;
-			*/
-			
-			System.out.println("Trying to match line " + lineNumber);
-			while (true) {
-				
-				if(matcher.find()) {
-				
-					System.out.println(lineNumber + ": match " + matcher.group(1) + " " + matcher.group(2) + " " + matcher.group(3) + " " + matcher.group(4) + " " + matcher.group(5));
-	
-					if(matcher.group(2) != null) {
-						System.out.println(lineNumber + ": replacing line comment : " + matcher.start() + "  " + matcher.end() + " " + matcher.group(2));
-						
+			System.out.println("Trying to match line " + lineNumber + (isBlockCommentOpen? " with comments " : " without comments"));
+			while (matcher.find()) {
+				if(isBlockCommentOpen) {
+					if(matcher.group(1) != null) {
+						System.out.println(lineNumber + ": replacing block comment end: " + matcher.start() + "  " + matcher.end() + " " + matcher.group(1));
 						StringBuilder builder = new StringBuilder(lines[lineNumber]);
 						lines[lineNumber] = builder.delete(matcher.start(), matcher.end()).toString();
-						
-					} else if(matcher.group(3) != null) {
-						System.out.println(lineNumber + ": replacing inline block comment: " + matcher.group(3));
-						StringBuilder builder = new StringBuilder(lines[lineNumber]);
-						lines[lineNumber] = builder.delete(matcher.start(), matcher.end()).toString();
-					
-					} else if (matcher.group(4) != null) {
-						System.out.println(lineNumber + ": replacing comment start: " + matcher.group(4));
-						StringBuilder builder = new StringBuilder(lines[lineNumber]);
-						lines[lineNumber] = builder.delete(matcher.start(), matcher.end()).toString();
-						isBlockCommentOpen = true;
-						
-					} else if (matcher.group(5) != null && isBlockCommentOpen) {
-						System.out.println(lineNumber + ": comment were open, closing at: " + matcher.start());
 						isBlockCommentOpen = false;
+						lineNumber--;
 					} else {
-						System.out.println("No matches for "  + lines[lineNumber]);
-						break;
+						System.out.println("Comment is open, deleting line " + lineNumber);
+						lines[lineNumber] = "";
 					}
+					break;
+				} else if(matcher.group(1) != null) {
+					System.out.println(lineNumber + ": matched valid string, dont touch it");
+				} else if(matcher.group(2) != null) {
+					System.out.println(lineNumber + ": replacing inline block comment : " + matcher.start() + "  " + matcher.end() + " " + matcher.group(2));
+					StringBuilder builder = new StringBuilder(lines[lineNumber]);
+					lines[lineNumber] = builder.delete(matcher.start(), matcher.end()).toString();
+					lineNumber--;
+					break;
+				} else if(matcher.group(3) != null) {
+					System.out.println(lineNumber + ": replacing line comment: " + matcher.group(3));
+					StringBuilder builder = new StringBuilder(lines[lineNumber]);
+					lines[lineNumber] = builder.delete(matcher.start(), matcher.end()).toString();
+					break;
+				} else if (matcher.group(4) != null) {
+					System.out.println(lineNumber + ": replacing comment start: " + matcher.group(4));
+					StringBuilder builder = new StringBuilder(lines[lineNumber]);
+					
+					lines[lineNumber] = builder.delete(matcher.start(), matcher.end()).toString();
+					isBlockCommentOpen = true;
+					break;
 				} else {
-					if (isBlockCommentOpen){
-						if(lineNumber < lines.length){
-							System.out.println(lineNumber + ": block comment open, deleting: " + lines[lineNumber]);
-							lines[lineNumber] = "";
-							break;
-						}
-					}
+					System.out.println("No matches for "  + lines[lineNumber]);
+					break;
 				}
-				
-			}
+			}	
 			lineNumber++;
 		}
 		
