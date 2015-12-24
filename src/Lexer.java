@@ -3,14 +3,12 @@ import java.util.regex.Pattern;
 
 public class Lexer {
 	static final String validStrings = "(\"[ #-~]*\"|\'[ !#-~]*\')"; // qualquer caractere
-														// entre 32 e 126 exceto
-														// o 34 ("), entre aspas
-														// duplas ou simples
+																	 // entre 32 e 126 exceto
+																	 // o 34 ("), entre aspas
+																	 // duplas ou simples
 	
-	static final String openStrings = "(\"[ !#-~]*$|\'[ !#-~]*$)"; // qualquer caractere
-														// entre 32 e 126 exceto
-														// o 34 ("), começando
-														// com aspas duplas ou simples
+	static final String openStrings = "(\".*?(?:\"|$))|(\'.*?(?:\'|$))"; // qualquer caractere
+																		 // com aspas duplas ou simples
 	
 	static final String lineCommentStart = "(//.*)"; // Início de comentário de
 														// linha, "//"
@@ -25,18 +23,11 @@ public class Lexer {
 	static final String blockCommentEnd = "(.*?\\*\\/)"; // Fim de comentário de
 															// bloco "aaaa */"
 
-	public static LexIO removeComments(LexIO io) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public static LexIO removeWhitespace(LexIO io) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	/**
-	 * Remove o lixo do código: Comentários, strings não fechadas e caracteres constantes não fechados
+	 * Remove o lixo do código: 
+	 * Strings não fechadas e caracteres constantes não fechados
+	 * Strings com 
+	 * Gera os erros, retorna um pipe para a próxima operação
 	 * 
 	 * @param io
 	 * @return
@@ -45,51 +36,73 @@ public class Lexer {
 
 		LexIO lexOut = new LexIO(io);
 		String[] lines = io.getLines();
-		String lineCommentsPattern;
-		String openCommentPattern;
-
-		boolean isBlockCommentOpen = false;
 		int lineNumber = 0;
 
-		String allStrings = validStrings + "|" + openStrings;
+		String allStrings = String.join("|", validStrings, openStrings);
 
-		for (String line : lines) {
-			 System.out.println("Line: " + line);
+		while(lineNumber < lines.length){
+			StringBuilder builder = new StringBuilder(lines[lineNumber]);
+			
+			System.out.println("Line: " + builder.toString());
 			Pattern pattern = Pattern.compile(allStrings);
-			Matcher matcher = pattern.matcher(line);
+			Matcher matcher = pattern.matcher(lines[lineNumber]);
+			
 			while (matcher.find()) {
 				if (matcher.group(2) != null) {
-					lines[lineNumber] = line.replace(matcher.group(2), "");
+					System.err.println("On line " + (lineNumber + 1) + ", malformed string, removing " + matcher.start() + " " + matcher.end());
+					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), "").toString();
+				} else if (matcher.group(3) != null) {
+					System.err.println("On line " + (lineNumber + 1) + ", malformed character constant, removing " + matcher.start() + " " + matcher.end());
+					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), "").toString();
 				}
 			}
 			lineNumber++;
 		}
 		
-		/*
-		 * Comentários de linha podem ser // desde que não exista um comentário
-		 * aberto antes
-		 * 
-		 * Comentários de linha também não são considerados dentro de strings
-		 * válidas Como a engine é gulosa, um match na string é suficiente.
-		 * 
-		 * Este while alterna entre dois estados: comentário aberto / comentário
-		 * fechado 
-		 * No comentário fechado, ele tenta dar match em 3 possíveis
-		 * combinações: 
-		 * -Comentário de bloco em linha; 
-		 * -Comentário de linha usando //;
-		 * -Início de comentário de bloco
-		 * 
-		 * 
-		 * No comentário aberto, ele consome as linhas seguintes até encontrar
-		 * um padrão de fechar comentário de bloco
-		 * 
-		 */
+		System.out.println("-----------------");
 
-		lineCommentsPattern = validStrings + "|" + inlineBlockComment + "|" + lineCommentStart + "|"
-				+ blockCommentStart;
+		for (String line : lines) {
+			System.out.println(line);
+		}
 
-		openCommentPattern = blockCommentEnd + "|" + "(^.*?$)";
+		lexOut.setLines(lines);
+		return lexOut;
+	}
+	
+	
+	/**
+	 * Comentários de linha podem ser // desde que não exista um comentário
+	 * aberto antes
+	 * 
+	 * Comentários de linha também não são considerados dentro de strings
+	 * válidas Como a engine é gulosa, um match na string é suficiente.
+	 * 
+	 * Este while alterna entre dois estados: comentário aberto / comentário
+	 * fechado 
+	 * No comentário fechado, ele tenta dar match em 3 possíveis
+	 * combinações: 
+	 * -Comentário de bloco em linha; 
+	 * -Comentário de linha usando //;
+	 * -Início de comentário de bloco
+	 * 
+	 * 
+	 * No comentário aberto, ele consome as linhas seguintes até encontrar
+	 * um padrão de fechar comentário de bloco
+	 * 
+	 */
+	
+	public static LexIO removeComments(LexIO io) {
+		
+		LexIO lexOut = new LexIO(io);
+		String[] lines = io.getLines();
+		String lineCommentsPattern;
+		String openCommentPattern;
+		boolean isBlockCommentOpen = false;
+		int lineNumber = 0;
+		
+		lineCommentsPattern = String.join("|", validStrings, inlineBlockComment, lineCommentStart, blockCommentStart);	
+		openCommentPattern = String.join("|", blockCommentEnd, "(^.*?$)");
+		
 		lineNumber = 0;
 		while (lineNumber < lines.length) {
 			StringBuilder builder = new StringBuilder(lines[lineNumber]);
@@ -131,26 +144,29 @@ public class Lexer {
 					isBlockCommentOpen = true;
 				}
 				
-				lines[lineNumber] = builder.delete(matcher.start(), matcher.end()).toString();
+				lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 				break;
 			}
 			if(skipLine)
 				lineNumber++;
 		}
-
-		System.out.println("-----------------");
-
-		for (String line : lines) {
-			System.out.println(line);
-		}
-
+		
+		
 		lexOut.setLines(lines);
-
 		return lexOut;
+	}
+
+	public static LexIO removeWhitespace(LexIO io) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	public static LexIO getValidTokens(LexIO io) {
 		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	private static LexIO getOperators(LexIO io) {
 		return null;
 	}
 
