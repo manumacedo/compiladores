@@ -1,5 +1,5 @@
 
- bb */
+aa / bb 
 
 "comment inside // means no comment" 
 this line start 
@@ -10,4 +10,9 @@ this line start
 
 
 
-valid!
+
+
+
+
+
+*/Only this will remain!

@@ -16,7 +16,7 @@ public class Main {
 			
 				LexIO io = new LexIO(file);
 				
-				LexIO noOpen = Lexer.removeUnclosedStuff(io);
+				LexIO noOpen = Lexer.removeTrash(io);
 				noOpen.writeIntermediate(OUT_DIR + "/noOpen.txt");
 				
 				System.exit(0);
