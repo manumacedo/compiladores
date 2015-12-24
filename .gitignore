@@ -2,4 +2,6 @@
 # http://git-scm.com/docs/gitignore
 
 bin/
+input/
+output/
 *.log
