@@ -1,9 +1,9 @@
-exemplo "testa;        a"a; /* comentário 
+exemplo testa;        a"a; /* comentário 
 
 float f = 3a; // erro!
 
-char flag = 'teste;  // erro 2
+char flag = 'teste';  // erro 2
 
-if (f >= 10) | (f < ) // sem erro
-	write("mensagem);	// erro!
+if (f >= 10) | (f < )
+	write("mensagem);
 	 
