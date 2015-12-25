@@ -22,6 +22,10 @@ public class Lexer {
 	
 	static final String blockCommentEnd = "(.*?\\*\\/)"; // Fim de comentário de
 															// bloco "aaaa */"
+	static final String delimiterSymbols = "[\\[\\]\\-+*/|&(){}><=,.;\\s]";
+	
+	static final String identifiers = "((?<=" + delimiterSymbols + "|^)[a-zA-Z][a-zA-Z0-9_]*)";
+	
 
 	/**
 	 * Remove o lixo do código: 
@@ -62,7 +66,7 @@ public class Lexer {
 		System.out.println("-----------------");
 
 		for (String line : lines) {
-			System.out.println(line);
+			//System.out.println(line);
 		}
 
 		lexOut.setLines(lines);
@@ -115,8 +119,11 @@ public class Lexer {
 
 			Matcher matcher = pattern.matcher(lines[lineNumber]);
 
-			System.out.println("Trying to match line " + lineNumber
-					+ (isBlockCommentOpen ? " with comments " : " without comments"));
+			/*System.out.println("Trying to match line " + lineNumber
+					+ (isBlockCommentOpen ? " with comments " : " without comments")); */
+			
+			
+			
 			while (matcher.find()) {
 				
 				// Comentário de bloco aberto
@@ -162,8 +169,63 @@ public class Lexer {
 	}
 
 	public static LexIO getValidTokens(LexIO io) {
-		// TODO Auto-generated method stub
-		return null;
+		LexIO lexOut = new LexIO(io);
+		String[] lines = io.getLines();
+
+		String validTokensPattern = String.join("|", validStrings, identifiers);
+		
+		Pattern pattern = Pattern.compile(validTokensPattern);
+		Matcher matcher;
+		int lineNumber = 0;
+		
+		String strMatch;
+		String idMatch;
+		Token token = null;
+		
+		
+		while(lineNumber < lines.length) {
+			 matcher = pattern.matcher(lines[lineNumber]);
+			 
+			 while(matcher.find()) {
+				 
+				 strMatch  = matcher.group(1);
+				 idMatch = matcher.group(2);
+				  
+				 if (strMatch != null){
+					 if(strMatch.startsWith("\""))
+						 token = new Token(lineNumber, strMatch, TokenType.STRING);
+					 else {
+						 if(strMatch.matches("'[a-zA-Z0-9]'")) { // valid chars
+							 token = new Token(lineNumber, strMatch, TokenType.CHAR);
+						 } else {
+							 // char error
+						 }
+					 }
+					 System.out.println(strMatch);
+				 } else if (idMatch != null){
+					 token = new Token(lineNumber, idMatch, TokenType.ID);
+					 if(Token.isKeyword(token))
+						 token.setType(TokenType.KEYWORD);
+					 
+					 System.out.println(idMatch);
+				 } /*else if (matcher.group(3) != null){
+					 
+				 } else if (matcher.group(4) != null){
+					 
+				 } else if (matcher.group(5) != null){
+					 
+				 } else if (matcher.group(6) != null){
+					 
+				 }
+				 */
+				 if(token != null)
+					 lexOut.addToken(token);
+			 }
+			 lineNumber++;
+		}
+		
+		return lexOut;
+		
 	}
 	
 	private static LexIO getOperators(LexIO io) {
