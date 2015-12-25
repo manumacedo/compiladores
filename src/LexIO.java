@@ -74,6 +74,10 @@ public class LexIO {
 	public void setValidTokens(ArrayList<Token> validTokens) {
 		this.validTokens = validTokens;
 	}
+	
+	public void addToken(Token t) {
+		this.validTokens.add(t);
+	}
 
 	public String [] getLines() {
 		return lines;
