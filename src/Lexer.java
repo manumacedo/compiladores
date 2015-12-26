@@ -55,8 +55,12 @@ public class Lexer {
 			+ delimiterSymbols + "|$))";
 	
 	
-	static final String intNumbers = "";
+	static final String intNumbers = "((?<="
+			+ delimiterSymbols + "|^)\\d+(?="
+			+ delimiterSymbols + "|$))";
 	
+	
+	static final String operators = "([-][-]|[+][+]|[><=]=?|[!][=]|[|][|]|&&|[+\\-*/])";
 	
 	/**
 	 * Remove o lixo do código: 
@@ -218,7 +222,7 @@ public class Lexer {
 						break;
 					}	
 				} else if (matcher.group(2) != null) {
-					System.out.println("On line " + (lineNumber + 1) + ", malformed identifier, removing " + matcher.start() + " " + matcher.end());
+					System.out.println("On line " + (lineNumber + 1) + ", malformed identifier, removing " + matcher.group());
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 					lineNumber--;
 					break;
@@ -246,7 +250,7 @@ public class Lexer {
 		LexIO lexOut = new LexIO(io);
 		String[] lines = io.getLines();
 
-		String validTokensPattern = String.join("|", validStrings, identifiers, floatNumbers);
+		String validTokensPattern = String.join("|", validStrings, identifiers, floatNumbers, intNumbers, operators);
 		
 		Pattern pattern = Pattern.compile(validTokensPattern);
 		Matcher matcher;
@@ -254,7 +258,9 @@ public class Lexer {
 		
 		String strMatch;
 		String idMatch;
-		String numMatch;
+		String floatMatch;
+		String intMatch;
+		String operatorMatch;
 		Token token = null;
 		
 		
@@ -262,35 +268,30 @@ public class Lexer {
 			 matcher = pattern.matcher(lines[lineNumber]);
 			 
 			 while(matcher.find()) {
-				 
+				 token = null;
 				 strMatch  = matcher.group(1);
 				 idMatch = matcher.group(2);
-				 numMatch = matcher.group(3);
-				 
+				 floatMatch = matcher.group(3);
+				 intMatch =  matcher.group(4);
+				 operatorMatch = matcher.group(5);
 				 if (strMatch != null){
 					 if(strMatch.startsWith("\""))
 						 token = new Token(lineNumber, strMatch, TokenType.STRING);
 					 else {
-						 if(strMatch.matches("'[a-zA-Z0-9]'")) { // valid chars
-							 token = new Token(lineNumber, strMatch, TokenType.CHAR);
-						 } else {
-							 // char error
-						 }
+						 token = new Token(lineNumber, strMatch, TokenType.CHAR);
 					 }
 				 } else if (idMatch != null){
 					 token = new Token(lineNumber, idMatch, TokenType.ID);
 					 if(Token.isKeyword(token))
 						 token.setType(TokenType.KEYWORD);
 					 
-				 } else if (numMatch != null){
-					 token = new Token(lineNumber, numMatch, TokenType.NUM);
-					 
-					 
-				 }/* else if (matcher.group(4) != null){
-					 
-				 } else if (matcher.group(5) != null){
-					 
-				 } else if (matcher.group(6) != null){
+				 } else if (floatMatch != null){
+					 token = new Token(lineNumber, floatMatch, TokenType.NUM);
+				 } else if (intMatch != null){
+					 token = new Token(lineNumber, intMatch, TokenType.NUM);
+				 } else if (operatorMatch != null){
+					 token = new Token(lineNumber, operatorMatch, TokenType.OP);
+				 } /*else if (matcher.group(6) != null){
 					 
 				 }
 				 */
@@ -302,10 +303,6 @@ public class Lexer {
 		
 		return lexOut;
 		
-	}
-	
-	private static LexIO getOperators(LexIO io) {
-		return null;
 	}
 
 }

@@ -1,7 +1,7 @@
 const identifier;
-int number = 3a;
+int number = 3;
 int malformedFloat = 3.3a;
-string malformedString = "aaa¬aaa";
+string malformedString != "aaa¬aaa";
 const malformedIdentifier#;
 char malformedChar = 'aa';
 string openString = " this is open

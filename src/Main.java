@@ -52,7 +52,7 @@ public class Main {
 				LexIO tokens = Lexer.getValidTokens(noMalformed);
 				
 				for(Token token: tokens.getValidTokens()) {
-					System.out.println(token.getRepresentation() + " " + token.getType() + " " + token.getLine());
+					System.out.println( token.getType() + " " + token.getRepresentation() + " " + token.getLine());
 				}
 				
 				System.exit(0);
