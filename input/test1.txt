@@ -1,9 +1,13 @@
-exemplo testa;        a"a; /* comentário 
-
-float f = 3a; // erro!
-
-char flag = 'teste';  // erro 2
-
-if (f >= 10) | (f < )
-	write("mensagem);
-	 
+const identifier;
+int number = 3a;
+int malformedFloat = 3.3a;
+string malformedString = "aaa¬aaa";
+const malformedIdentifier#;
+char malformedChar = 'aa';
+string openString = " this is open
+char openChar = ' open char;
+/* open comment block
+this
+will
+cause
+error

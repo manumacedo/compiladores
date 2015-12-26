@@ -41,7 +41,7 @@ public class Main {
 				
 				noComments.writeIntermediate(OUT_DIR + "/noComments.txt");
 				
-				
+				LexIO noMalformed = Lexer.removeMalformed(noComments);
 				
 				/*
 				LexIO noWhitespace = Lexer.removeWhitespace(noComments);
@@ -49,11 +49,13 @@ public class Main {
 				noWhitespace.writeIntermediate(OUT_DIR + "/noWhitespace.txt");
 				*/
 				
-				LexIO tokens = Lexer.getValidTokens(noComments);
+				LexIO tokens = Lexer.getValidTokens(noMalformed);
 				
 				for(Token token: tokens.getValidTokens()) {
 					System.out.println(token.getRepresentation() + " " + token.getType() + " " + token.getLine());
 				}
+				
+				System.exit(0);
 		}
 	}
 }

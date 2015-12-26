@@ -1,5 +1,9 @@
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.management.MalformedObjectNameException;
 
 public class Lexer {
 	static final String validStrings = "(\"[ #-~]*\"|\'[ !#-~]*\')"; // qualquer caractere
@@ -21,12 +25,39 @@ public class Lexer {
 														// de bloco "/* aaaaa"
 	
 	static final String blockCommentEnd = "(.*?\\*\\/)"; // Fim de comentário de
-															// bloco "aaaa */"
-	static final String delimiterSymbols = "[\\[\\]\\-+*/|&(){}><=,.;\\s]";
-	
-	static final String identifiers = "((?<=" + delimiterSymbols + "|^)[a-zA-Z][a-zA-Z0-9_]*)";
-	
 
+	
+	static final String delimiterSymbols = "[\\[\\]\\-+*/|&(){}><=,.;\\s]";
+	static final String invalidSymbolsWithLetters = "[^\\[\\]\\-+*/|&(){}><=,.;\\s0-9a-zA-Z_]";
+	static final String invalidSymbols = "[^\\[\\]\\-+*/|&(){}><=,.;\\s0-9_]";
+	
+	
+	static final String malformedIdentifier = "([a-zA-Z][a-zA-Z0-9_]+"
+			+ invalidSymbolsWithLetters + ".*?(?="
+			+ delimiterSymbols + "|$))";
+	
+	
+	static final String malformedFloat = "(\\d+\\.\\d+"
+			+ invalidSymbols + ".*?(?="
+			+ delimiterSymbols + "|$))";
+	
+	static final String malformedInt = "(\\d+"
+			+ invalidSymbols + ".*?(?="
+			+ delimiterSymbols + "|$))";
+	
+	
+	static final String identifiers = "((?<=" 
+			+ delimiterSymbols + "|^)[a-zA-Z][a-zA-Z0-9_]*(?="   // indentificadores seguidos de operador/delimitador
+			+ delimiterSymbols + "|$))";
+	
+	static final String floatNumbers = "((?<="
+			+ delimiterSymbols + "|^)\\d+\\.\\d+(?="
+			+ delimiterSymbols + "|$))";
+	
+	
+	static final String intNumbers = "";
+	
+	
 	/**
 	 * Remove o lixo do código: 
 	 * Strings não fechadas e caracteres constantes não fechados
@@ -47,23 +78,23 @@ public class Lexer {
 		while(lineNumber < lines.length){
 			StringBuilder builder = new StringBuilder(lines[lineNumber]);
 			
-			System.out.println("Line: " + builder.toString());
+			//System.out.println("Line: " + builder.toString());
 			Pattern pattern = Pattern.compile(allStrings);
 			Matcher matcher = pattern.matcher(lines[lineNumber]);
 			
 			while (matcher.find()) {
 				if (matcher.group(2) != null) {
-					System.err.println("On line " + (lineNumber + 1) + ", malformed string, removing " + matcher.start() + " " + matcher.end());
-					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), "").toString();
+					System.out.println("On line " + (lineNumber + 1) + ", invalid string, removing " + matcher.start() + " " + matcher.end());
+					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 				} else if (matcher.group(3) != null) {
-					System.err.println("On line " + (lineNumber + 1) + ", malformed character constant, removing " + matcher.start() + " " + matcher.end());
-					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), "").toString();
-				}
+					System.out.println("On line " + (lineNumber + 1) + ", open character constant, removing " + matcher.start() + " " + matcher.end());
+					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
+				} 
 			}
 			lineNumber++;
 		}
 		
-		System.out.println("-----------------");
+		System.out.println("removed open strings ---------");
 
 		for (String line : lines) {
 			//System.out.println(line);
@@ -158,8 +189,51 @@ public class Lexer {
 				lineNumber++;
 		}
 		
-		
+		System.out.println("removed comments ---------");
 		lexOut.setLines(lines);
+		return lexOut;
+	}
+	
+	public static LexIO removeMalformed(LexIO io) {
+		
+		LexIO lexOut = new LexIO(io);
+		String[] lines = io.getLines();
+		int lineNumber = 0;
+
+		String malformed = String.join("|", validStrings, malformedIdentifier, malformedFloat, malformedInt);
+
+		while(lineNumber < lines.length){
+			StringBuilder builder = new StringBuilder(lines[lineNumber]);
+			
+			//System.out.println("Line: " + builder.toString());
+			Pattern pattern = Pattern.compile(malformed);
+			Matcher matcher = pattern.matcher(lines[lineNumber]);
+			
+			while (matcher.find()) {
+				if (matcher.group(1) != null) {
+					if(!matcher.group(1).matches("'[a-zA-Z0-9]'")) {
+						System.out.println("On line " + (lineNumber + 1) + ", malformed character constant, removing " + matcher.start() + " " + matcher.end());
+						lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
+						lineNumber--;
+						break;
+					}	
+				} else if (matcher.group(2) != null) {
+					System.out.println("On line " + (lineNumber + 1) + ", malformed identifier, removing " + matcher.start() + " " + matcher.end());
+					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
+					lineNumber--;
+					break;
+				} else if (matcher.group(3) != null || matcher.group(4) != null) {
+					System.out.println("On line " + (lineNumber + 1) + ", malformed number, removing " + matcher.start() + " " + matcher.end());
+					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
+					lineNumber--;
+					break;
+				}
+				
+			}
+			lineNumber++;
+		}
+		
+		System.out.println("removed malformed stuff ---------");
 		return lexOut;
 	}
 
@@ -172,7 +246,7 @@ public class Lexer {
 		LexIO lexOut = new LexIO(io);
 		String[] lines = io.getLines();
 
-		String validTokensPattern = String.join("|", validStrings, identifiers);
+		String validTokensPattern = String.join("|", validStrings, identifiers, floatNumbers);
 		
 		Pattern pattern = Pattern.compile(validTokensPattern);
 		Matcher matcher;
@@ -180,6 +254,7 @@ public class Lexer {
 		
 		String strMatch;
 		String idMatch;
+		String numMatch;
 		Token token = null;
 		
 		
@@ -190,7 +265,8 @@ public class Lexer {
 				 
 				 strMatch  = matcher.group(1);
 				 idMatch = matcher.group(2);
-				  
+				 numMatch = matcher.group(3);
+				 
 				 if (strMatch != null){
 					 if(strMatch.startsWith("\""))
 						 token = new Token(lineNumber, strMatch, TokenType.STRING);
@@ -201,16 +277,16 @@ public class Lexer {
 							 // char error
 						 }
 					 }
-					 System.out.println(strMatch);
 				 } else if (idMatch != null){
 					 token = new Token(lineNumber, idMatch, TokenType.ID);
 					 if(Token.isKeyword(token))
 						 token.setType(TokenType.KEYWORD);
 					 
-					 System.out.println(idMatch);
-				 } /*else if (matcher.group(3) != null){
+				 } else if (numMatch != null){
+					 token = new Token(lineNumber, numMatch, TokenType.NUM);
 					 
-				 } else if (matcher.group(4) != null){
+					 
+				 }/* else if (matcher.group(4) != null){
 					 
 				 } else if (matcher.group(5) != null){
 					 
