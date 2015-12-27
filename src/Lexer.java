@@ -266,15 +266,13 @@ public class Lexer {
 		for (int i = 0; i < tokens.size(); i++) {
 			Token token = tokens.get(i);
 			if (token.getType().equals(TokenType.OP) && token.getRepresentation().equals("-")) {
-				if(i == 0){
+				if(i == 0 || tokens.get(i-1).isBinaryOperator() || tokens.get(i-1).isDelimiter()){
 					if(tokens.get(i+1).isNumber()){
-						
+						tokens.remove(i);
+						Token num = tokens.get(i);
+						num.setRepresentation("-" + num.getRepresentation());
+						tokens.set(i, num);
 					}
-				} else if (tokens.get(i-1).isBinaryOperator() || tokens.get(i-1).isDelimiter()){
-					tokens.remove(i);
-					Token num = tokens.get(i);
-					num.setRepresentation("-" + num.getRepresentation());
-					tokens.set(i, num);
 				}
 			}
 		}
