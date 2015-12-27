@@ -10,7 +10,7 @@ import java.util.ArrayList;
 
 public class LexIO {
 	
-	private ArrayList<Token> validTokens;
+	private ArrayList<Token> tokens;
 	private ArrayList<Error> errors;
 	private String [] lines;
 	private File inputFile;
@@ -35,7 +35,7 @@ public class LexIO {
 		this.setInputFile(pipe.getInputFile());
 		this.setLines(pipe.getLines());
 		this.setErrors(pipe.getErrors());
-		this.setValidTokens(pipe.getValidTokens());
+		this.setValidTokens(pipe.getTokens());
 	}
 
 	public void writeIntermediate(String fileName) {
@@ -67,16 +67,16 @@ public class LexIO {
 		this.errors = errors;
 	}
 
-	public ArrayList<Token> getValidTokens() {
-		return validTokens;
+	public ArrayList<Token> getTokens() {
+		return tokens;
 	}
 
-	public void setValidTokens(ArrayList<Token> validTokens) {
-		this.validTokens = validTokens;
+	public void setValidTokens(ArrayList<Token> tokens) {
+		this.tokens = tokens;
 	}
 	
-	public void addToken(Token t) {
-		this.validTokens.add(t);
+	public void addToken(Token token) {
+		this.tokens.add(token);
 	}
 
 	public String [] getLines() {

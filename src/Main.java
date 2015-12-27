@@ -34,9 +34,7 @@ public class Main {
 				
 				LexIO noTrash = Lexer.removeTrash(io);
 				noTrash.writeIntermediate(OUT_DIR + "/noTrash.txt");
-				
-				
-				
+
 				LexIO noComments = Lexer.removeComments(noTrash);
 				
 				noComments.writeIntermediate(OUT_DIR + "/noComments.txt");
@@ -51,7 +49,7 @@ public class Main {
 				
 				LexIO tokens = Lexer.getValidTokens(noMalformed);
 				
-				for(Token token: tokens.getValidTokens()) {
+				for(Token token: tokens.getTokens()) {
 					System.out.println( token.getType() + " " + token.getRepresentation() + " " + token.getLine());
 				}
 				

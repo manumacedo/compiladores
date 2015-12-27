@@ -1,5 +1,7 @@
 const identifier;
-int number = 3;
+int number = - 3a;
+int number2 = -
+3;
 int malformedFloat = 3.3a;
 string malformedString != "aaa¬aaa";
 const malformedIdentifier#;
@@ -11,3 +13,6 @@ this
 will
 cause
 error
+*/
+;=
+-5
