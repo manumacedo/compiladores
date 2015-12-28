@@ -134,11 +134,6 @@ public class Lexer {
 		}
 
 		System.out.println("removed open strings ---------");
-
-		for (String line : lines) {
-			// System.out.println(line);
-		}
-
 		lexOut.setLines(lines);
 		return lexOut;
 	}
@@ -320,11 +315,6 @@ public class Lexer {
 
 		System.out.println("removed malformed stuff ---------");
 		return lexOut;
-	}
-
-	public static LexIO removeWhitespace(LexIO io) {
-		// TODO Auto-generated method stub
-		return null;
 	}
 
 	/**
