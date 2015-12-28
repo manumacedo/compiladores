@@ -33,23 +33,12 @@ public class Main {
 				LexIO io = new LexIO(file);
 				
 				LexIO noTrash = Lexer.removeTrash(io);
-				noTrash.writeIntermediate(OUT_DIR + "/noTrash.txt");
-
 				LexIO noComments = Lexer.removeComments(noTrash);
-				
-				noComments.writeIntermediate(OUT_DIR + "/noComments.txt");
-				
 				LexIO noMalformed = Lexer.removeMalformed(noComments);
-				
-				noMalformed.writeIntermediate(OUT_DIR + "/noMalformed.txt");
-				
-				/*
-				LexIO noWhitespace = Lexer.removeWhitespace(noComments);
-				
-				noWhitespace.writeIntermediate(OUT_DIR + "/noWhitespace.txt");
-				*/
-				
 				LexIO tokens = Lexer.getValidTokens(noMalformed);
+				
+				tokens.writeOutput(OUT_DIR + "/" + file.getName());
+				
 				
 				for(Token token: tokens.getTokens()) {
 					System.out.println(  token.getRepresentation() + " " + token.getType() + " " + token.getLine());
@@ -59,8 +48,6 @@ public class Main {
 				for(TokenError error : tokens.getErrors()) {
 					System.err.println( error.getRepresentation() + " " + error.getType() + " " + " " + error.getLine());
 				}
-				
-				System.exit(0);
 		}
 	}
 }

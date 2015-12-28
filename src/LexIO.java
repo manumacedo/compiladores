@@ -102,4 +102,26 @@ public class LexIO {
 
 	}
 
+	public void writeOutput(String filename) {
+		System.out.println(filename);
+		PrintWriter writer;
+		try {
+			writer = new PrintWriter(filename, "UTF-8");
+			for(Token token : tokens){
+				writer.println(token.getRepresentation() + " " + token.getType() + " " + (token.getLine()+1));
+			}
+			
+			writer.println();
+			
+			for(TokenError error : errors){
+				writer.println( error.getRepresentation() + " " + error.getType() + " " + " " + (error.getLine()+1));
+			}	
+			
+			writer.close();
+		} catch (FileNotFoundException | UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		
+	}
+
 }
