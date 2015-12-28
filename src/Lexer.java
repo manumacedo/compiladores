@@ -190,13 +190,11 @@ public class Lexer {
 
 				if (isBlockCommentOpen) {
 					if(matcher.group(1) != null) {
-						commentError = matcher.group(1);
-						error = new TokenError(lineNumber, commentError, ErrorType.comentario_aberto);
-						lexOut.addError(error);
 						System.out.println(lineNumber + ": replacing block comment end: " + matcher.start() + "  "
 								+ matcher.end() + " " + matcher.group(1));
 						isBlockCommentOpen = false;
 						skipLine = false;
+						error = null;
 					}
 				}
 
@@ -210,8 +208,10 @@ public class Lexer {
 							+ matcher.end() + " " + matcher.group(2));
 					skipLine = false;
 				} else if (matcher.group(4) != null) {
+					commentError = matcher.group(4);
 					System.out.println(lineNumber + ": replacing comment start: " + matcher.group(4));
 					isBlockCommentOpen = true;
+					error = new TokenError(lineNumber, commentError, ErrorType.comentario_aberto);
 				}
 
 				lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
@@ -220,7 +220,10 @@ public class Lexer {
 			if (skipLine)
 				lineNumber++;
 		}
-
+		
+		if(error != null)
+			lexOut.addError(error);
+		
 		System.out.println("removed comments ---------");
 		lexOut.setLines(lines);
 		return lexOut;
