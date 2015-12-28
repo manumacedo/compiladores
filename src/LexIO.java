@@ -78,6 +78,10 @@ public class LexIO {
 	public void addToken(Token t) {
 		this.validTokens.add(t);
 	}
+	
+	public void addError (TokenError t){
+		this.errors.add(t);
+	}
 
 	public String [] getLines() {
 		return lines;

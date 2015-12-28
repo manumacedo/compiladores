@@ -27,7 +27,7 @@ public class Lexer {
 	static final String blockCommentEnd = "(.*?\\*\\/)"; // Fim de comentário de
 
 	
-	static final String delimiterSymbols = "[\\[\\]\\-+*/|&(){}><=,.;\\s]";
+	static final String delimiterSymbols = "[\\[\\]\\-+*/|&(){}><=,.;\\s]"; 
 	static final String invalidSymbolsWithLetters = "[^\\[\\]\\-+*/|&(){}><=,.;\\s0-9a-zA-Z_]";
 	static final String invalidSymbols = "[^\\[\\]\\-+*/|&(){}><=,.;\\s0-9_]";
 	
@@ -61,6 +61,7 @@ public class Lexer {
 	
 	
 	static final String operators = "([-][-]|[+][+]|[><=]=?|[!][=]|[|][|]|&&|[+\\-*/])";
+
 	
 	/**
 	 * Remove o lixo do código: 
@@ -72,10 +73,13 @@ public class Lexer {
 	 * @return
 	 */
 	public static LexIO removeTrash(LexIO io) {
-
+		
+		TokenError error = null;
 		LexIO lexOut = new LexIO(io);
 		String[] lines = io.getLines();
 		int lineNumber = 0;
+		String strError;
+		String charError;
 
 		String allStrings = String.join("|", validStrings, openStrings);
 
@@ -88,9 +92,15 @@ public class Lexer {
 			
 			while (matcher.find()) {
 				if (matcher.group(2) != null) {
+					strError = matcher.group(2);
+					error = new TokenError(lineNumber, strError, ErrorType.cadeia_mal_formada);
+					lexOut.addError(error);
 					System.out.println("On line " + (lineNumber + 1) + ", invalid string, removing " + matcher.start() + " " + matcher.end());
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 				} else if (matcher.group(3) != null) {
+					charError = matcher.group(3);
+					error = new TokenError(lineNumber, charError, ErrorType.caractere_mal_formado);
+					lexOut.addError(error);
 					System.out.println("On line " + (lineNumber + 1) + ", open character constant, removing " + matcher.start() + " " + matcher.end());
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 				} 
