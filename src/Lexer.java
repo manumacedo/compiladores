@@ -1,10 +1,6 @@
 import java.util.ArrayList;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.management.MalformedObjectNameException;
 
 public class Lexer {
 	/**
@@ -106,7 +102,7 @@ public class Lexer {
 			// System.out.println("Line: " + builder.toString());
 			Pattern pattern = Pattern.compile(allStrings);
 			Matcher matcher = pattern.matcher(lines[lineNumber]);
-			
+
 			while (matcher.find()) {
 				if (matcher.group(2) != null) {
 					strError = matcher.group(2);
@@ -258,7 +254,7 @@ public class Lexer {
 				if (matcher.group(1) != null) {
 
 					if (matcher.group(1).startsWith("\'") && !matcher.group(1).matches("'[a-zA-Z0-9]'")) {
-						charError = matcher.group(1); 
+						charError = matcher.group(1);
 						error = new TokenError(lineNumber, charError, ErrorType.caractere_mal_formado);
 						lexOut.addError(error);
 						System.out.println("On line " + (lineNumber + 1) + ", malformed character constant, removing "

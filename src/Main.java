@@ -8,22 +8,6 @@ public class Main {
 	
 	public static void main(String [] args) throws InterruptedException {
 		
-		
-		
-		
-		/*
-		 * 
-		 * test zone
-		 * 
-		 * */
-
-		/*
-		 * 
-		 * 
-		 * 
-		 * */
-		
-		
 		ArrayList<File> fileList = Utils.listFiles(IN_DIR);
 		
 		for (File file : fileList) {
