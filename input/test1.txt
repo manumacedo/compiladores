@@ -1,9 +1,10 @@
 -  5;
-const identifier;
+const $identifier;
 int number = - 3a;
 int number2 = -
 3;
 int malformedFloat = 3.3a;
+call(-5,a5)
 string malformedString != "aaa¬aaa";
 const malformedIdentifier#;
 char malformedChar = 'aa';

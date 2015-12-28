@@ -70,8 +70,12 @@ public class Lexer {
 	/**
 	 * Operadores válidos
 	 */
-	static final String operators = "([-][-]|[+][+]|[><=]=?|[!][=]|[|][|]|&&|[+\\-*/])";
+	static final String operators = "([-][-]|[+][+]|[><=]=?|[!][=]|[|][|]|&&|[+\\-*/.])";
 
+	/**
+	 * Delimitadores
+	 */
+	static final String delimiters = "([{}()\\[\\];,])";
 	
 	// TODO operadores mal formados
 	
@@ -282,7 +286,7 @@ public class Lexer {
 		LexIO lexOut = new LexIO(io);
 		String[] lines = io.getLines();
 
-		String validTokensPattern = String.join("|", validStrings, identifiers, floatNumbers, intNumbers, operators);
+		String validTokensPattern = String.join("|", validStrings, identifiers, floatNumbers, intNumbers, operators, delimiters);
 
 		Pattern pattern = Pattern.compile(validTokensPattern);
 		Matcher matcher;
@@ -293,8 +297,9 @@ public class Lexer {
 		String floatMatch;
 		String intMatch;
 		String operatorMatch;
+		String delimiterMatch;
 		Token token = null;
-
+		
 		while (lineNumber < lines.length) {
 			matcher = pattern.matcher(lines[lineNumber]);
 
@@ -305,6 +310,7 @@ public class Lexer {
 				floatMatch = matcher.group(3);
 				intMatch = matcher.group(4);
 				operatorMatch = matcher.group(5);
+				delimiterMatch = matcher.group(6);
 				if (strMatch != null) {
 					if (strMatch.startsWith("\""))
 						token = new Token(lineNumber, strMatch, TokenType.STRING);
@@ -322,11 +328,9 @@ public class Lexer {
 					token = new Token(lineNumber, intMatch, TokenType.NUM);
 				} else if (operatorMatch != null) {
 					token = new Token(lineNumber, operatorMatch, TokenType.OP);
-				} /*
-					 * else if (matcher.group(6) != null){
-					 * 
-					 * }
-					 */
+				} else if (delimiterMatch != null){
+					token = new Token(lineNumber, delimiterMatch, TokenType.DELIM);
+				}
 				if (token != null)
 					lexOut.addToken(token);
 			}

@@ -41,6 +41,8 @@ public class Main {
 				
 				LexIO noMalformed = Lexer.removeMalformed(noComments);
 				
+				noMalformed.writeIntermediate(OUT_DIR + "/noMalformed.txt");
+				
 				/*
 				LexIO noWhitespace = Lexer.removeWhitespace(noComments);
 				

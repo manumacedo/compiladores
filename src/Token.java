@@ -51,12 +51,12 @@ public class Token {
 	}
 	
 	public boolean isBinaryOperator(){
-		String binaryOperators = "([><=]=?|[!][=]|[|][|]|&&|[+\\-*/])";
+		String binaryOperators = "([><=]=?|[!][=]|[|][|]|&&|[+\\-*/.])";
 		return this.representation.matches(binaryOperators);
 	}
 	
 	public boolean isDelimiter(){
-		String delimiters = "([,.;\\[\\]\\(\\)\\{\\}])";
+		String delimiters = "([,;\\[\\]\\(\\)\\{\\}])";
 		return this.representation.matches(delimiters);
 	}
 	
