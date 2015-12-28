@@ -53,11 +53,14 @@ public class Lexer {
 			+ delimiterSymbols + "|$))";
 
 	/**
-	 * Número mal formado (separado em int e float)
+	 * Número e operador mal formado
 	 */
 	static final String malformedFloat = "(\\d+\\.\\d+" + invalidSymbols + ".*?(?=" + delimiterSymbols + "|$))";
 	static final String malformedInt = "(\\d+" + invalidSymbols + ".*?(?=" + delimiterSymbols + "|$))";
-
+	static final String malformedOperator = "(!(?:[^=\\n]|$)|&(?:[^&\\n]|$)|\\|(?:[^\\|\\n]|$))";
+	
+	
+	
 	static final String identifiers = "((?<=" + delimiterSymbols + "|^)[a-zA-Z][a-zA-Z0-9_]*(?="
 			+ delimiterSymbols + "|$))";
 
@@ -71,6 +74,8 @@ public class Lexer {
 	 * Operadores válidos
 	 */
 	static final String operators = "([-][-]|[+][+]|[><=]=?|[!][=]|[|][|]|&&|[+\\-*/.])";
+	
+	
 
 	/**
 	 * Delimitadores
@@ -237,9 +242,10 @@ public class Lexer {
 		String idError;
 		String numError;
 		String charError;
+		String opError;
 		TokenError error = null;
 
-		String malformed = String.join("|", validStrings, malformedIdentifier, malformedFloat, malformedInt);
+		String malformed = String.join("|", validStrings, malformedIdentifier, malformedFloat, malformedInt, operators, malformedOperator);
 
 		while (lineNumber < lines.length) {
 			StringBuilder builder = new StringBuilder(lines[lineNumber]);
@@ -285,7 +291,19 @@ public class Lexer {
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 					lineNumber--;
 					break;
+				}  else if (matcher.group(6) != null) {
+					opError = matcher.group(5);
+					error = new TokenError(lineNumber, opError, ErrorType.operador_mal_formado);
+					lexOut.addError(error);
+					System.out.println("On line " + (lineNumber + 1) + ", malformed operator, removing " + matcher.start() + " " + matcher.end());
+
+					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
+					lineNumber--;
+					break;
 				}
+				 
+				
+				
 
 			}
 			lineNumber++;
