@@ -1,9 +1,9 @@
 public enum TokenType {
-	KEYWORD,
-	ID,
-	NUM,
-	OP,
-	DELIM,
-	STRING,
-	CHAR
+	palavra_reservada,
+	identificador,
+	numero,
+	operador,
+	delimitador,
+	cadeia_constante,
+	caractere_constante
 }

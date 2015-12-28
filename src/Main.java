@@ -52,11 +52,10 @@ public class Main {
 				LexIO tokens = Lexer.getValidTokens(noMalformed);
 				
 				for(Token token: tokens.getTokens()) {
-					System.out.println( token.getType() + " " + token.getRepresentation() + " " + token.getLine());
+					System.out.println(  token.getRepresentation() + " " + token.getType() + " " + token.getLine());
 				}
 
-				
-				Thread.sleep(500);
+				Thread.sleep(100); // used for debug
 				for(TokenError error : tokens.getErrors()) {
 					System.err.println( error.getRepresentation() + " " + error.getType() + " " + " " + error.getLine());
 				}

@@ -47,7 +47,7 @@ public class Token {
 	}
 	
 	public boolean isNumber(){
-		return this.type == TokenType.NUM;
+		return this.type == TokenType.numero;
 	}
 	
 	public boolean isBinaryOperator(){

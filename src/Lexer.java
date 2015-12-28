@@ -42,9 +42,9 @@ public class Lexer {
 	 * Símbolos que delimitam identificadores e números. Símbolos inválidos que
 	 * transformam identificadores
 	 */
-	static final String delimiterSymbols = "[\\[\\]\\-+*/|&(){}><=,.;\\s]";
+	static final String delimiterSymbols = "[\\[\\]\\-+*/|!&(){}><=,.;\\s]";
 
-	static final String invalidSymbolsWithLetters = "[^\\[\\]\\-+*/|&(){}><=,.;\\s0-9a-zA-Z_]";
+	static final String invalidSymbolsWithLetters = "[^\\[\\]\\-+*/|&(){}><=,.;\\s0-9!a-zA-Z_]";
 	static final String invalidSymbols = "[^\\[\\]\\-+*/|&(){}><=,.;\\s0-9_]";
 
 	/**
@@ -106,7 +106,7 @@ public class Lexer {
 			// System.out.println("Line: " + builder.toString());
 			Pattern pattern = Pattern.compile(allStrings);
 			Matcher matcher = pattern.matcher(lines[lineNumber]);
-
+			
 			while (matcher.find()) {
 				if (matcher.group(2) != null) {
 					strError = matcher.group(2);
@@ -327,7 +327,7 @@ public class Lexer {
 
 		for (int i = 0; i < tokens.size(); i++) {
 			Token token = tokens.get(i);
-			if (token.getType().equals(TokenType.OP) && token.getRepresentation().equals("-")) {
+			if (token.getType().equals(TokenType.operador) && token.getRepresentation().equals("-")) {
 				if (i == 0 || tokens.get(i - 1).isBinaryOperator() || tokens.get(i - 1).isDelimiter()) {
 					if (tokens.get(i + 1).isNumber()) {
 						tokens.remove(i);
@@ -372,23 +372,23 @@ public class Lexer {
 				delimiterMatch = matcher.group(6);
 				if (strMatch != null) {
 					if (strMatch.startsWith("\""))
-						token = new Token(lineNumber, strMatch, TokenType.STRING);
+						token = new Token(lineNumber, strMatch, TokenType.cadeia_constante);
 					else {
-						token = new Token(lineNumber, strMatch, TokenType.CHAR);
+						token = new Token(lineNumber, strMatch, TokenType.caractere_constante);
 					}
 				} else if (idMatch != null) {
-					token = new Token(lineNumber, idMatch, TokenType.ID);
+					token = new Token(lineNumber, idMatch, TokenType.identificador);
 					if (Token.isKeyword(token))
-						token.setType(TokenType.KEYWORD);
+						token.setType(TokenType.palavra_reservada);
 
 				} else if (floatMatch != null) {
-					token = new Token(lineNumber, floatMatch, TokenType.NUM);
+					token = new Token(lineNumber, floatMatch, TokenType.numero);
 				} else if (intMatch != null) {
-					token = new Token(lineNumber, intMatch, TokenType.NUM);
+					token = new Token(lineNumber, intMatch, TokenType.numero);
 				} else if (operatorMatch != null) {
-					token = new Token(lineNumber, operatorMatch, TokenType.OP);
+					token = new Token(lineNumber, operatorMatch, TokenType.operador);
 				} else if (delimiterMatch != null) {
-					token = new Token(lineNumber, delimiterMatch, TokenType.DELIM);
+					token = new Token(lineNumber, delimiterMatch, TokenType.delimitador);
 				}
 				if (token != null)
 					lexOut.addToken(token);
