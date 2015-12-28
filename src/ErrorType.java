@@ -5,5 +5,6 @@ public enum ErrorType {
 	operador_mal_formado,
 	cadeia_mal_formada,
 	caractere_mal_formado,
-	comentario_aberto
+	comentario_aberto,
+	expressao_invalida
 }

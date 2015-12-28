@@ -74,8 +74,10 @@ public class Lexer {
 	 * Delimitadores
 	 */
 	static final String delimiters = "([{}()\\[\\];,])";
-
-	// TODO operadores mal formados
+	
+	static final String invalidExpression = "(" + invalidSymbolsWithLetters +   ".*?(?="
+			+ delimiterSymbols + "))";
+	
 
 	/**
 	 * Remove o lixo do código: Strings não fechadas e caracteres constantes não
@@ -92,9 +94,10 @@ public class Lexer {
 		int lineNumber = 0;
 		String strError;
 		String charError;
+		String invalidExpressionError;
 		TokenError error = null;
 
-		String allStrings = String.join("|", validStrings, openStrings);
+		String allStrings = String.join("|", validStrings, openStrings, invalidExpression);
 
 		while (lineNumber < lines.length) {
 			StringBuilder builder = new StringBuilder(lines[lineNumber]);
@@ -116,6 +119,13 @@ public class Lexer {
 					error = new TokenError(lineNumber, charError, ErrorType.caractere_mal_formado);
 					lexOut.addError(error);
 					System.out.println("On line " + (lineNumber + 1) + ", open character constant, removing "
+							+ matcher.start() + " " + matcher.end());
+					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
+				} else if (matcher.group(4) != null) {
+					invalidExpressionError = matcher.group(4);
+					error = new TokenError(lineNumber, invalidExpressionError, ErrorType.expressao_invalida);
+					lexOut.addError(error);
+					System.out.println("On line " + (lineNumber + 1) + ", invalid expression, removing "
 							+ matcher.start() + " " + matcher.end());
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 				}
@@ -317,6 +327,12 @@ public class Lexer {
 		return null;
 	}
 
+	/**
+	 * Transforma os operadores de subtração + números em números negativos, quando aplicado.
+	 * 
+	 * 
+	 * @param io
+	 */
 	private static void transformNegativeNumbers(LexIO io) {
 		ArrayList<Token> tokens;
 		tokens = io.getTokens();
@@ -336,6 +352,12 @@ public class Lexer {
 		}
 	}
 
+	/**
+	 * Recupera os tokens válidos do arquivo intermediário
+	 * 
+	 * @param io
+	 * @return
+	 */
 	public static LexIO getValidTokens(LexIO io) {
 		LexIO lexOut = new LexIO(io);
 		String[] lines = io.getLines();
