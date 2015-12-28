@@ -1,6 +1,10 @@
-const identifier;
-int number = 3;
+-  5;
+const $identifier;
+int number = - 3a;
+int number2 = -
+3;
 int malformedFloat = 3.3a;
+call(-5,a5)
 string malformedString != "aaa¬aaa";
 const malformedIdentifier#;
 char malformedChar = 'aa';
@@ -11,3 +15,6 @@ this
 will
 cause
 error
+*/
+;=
+-5

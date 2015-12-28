@@ -46,4 +46,18 @@ public class Token {
 		return keywords.contains(t.getRepresentation());
 	}
 	
+	public boolean isNumber(){
+		return this.type == TokenType.NUM;
+	}
+	
+	public boolean isBinaryOperator(){
+		String binaryOperators = "([><=]=?|[!][=]|[|][|]|&&|[+\\-*/.])";
+		return this.representation.matches(binaryOperators);
+	}
+	
+	public boolean isDelimiter(){
+		String delimiters = "([,;\\[\\]\\(\\)\\{\\}])";
+		return this.representation.matches(delimiters);
+	}
+	
 }
