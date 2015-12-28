@@ -74,12 +74,12 @@ public class Lexer {
 	 */
 	public static LexIO removeTrash(LexIO io) {
 		
-		TokenError error = null;
 		LexIO lexOut = new LexIO(io);
 		String[] lines = io.getLines();
 		int lineNumber = 0;
 		String strError;
 		String charError;
+		TokenError error = null;
 
 		String allStrings = String.join("|", validStrings, openStrings);
 
@@ -148,6 +148,8 @@ public class Lexer {
 		String openCommentPattern;
 		boolean isBlockCommentOpen = false;
 		int lineNumber = 0;
+		String commentError;
+		TokenError error = null;
 		
 		lineCommentsPattern = String.join("|", validStrings, inlineBlockComment, lineCommentStart, blockCommentStart);	
 		openCommentPattern = String.join("|", blockCommentEnd, "(^.*?$)");
@@ -175,6 +177,9 @@ public class Lexer {
 				
 				if (isBlockCommentOpen) {
 					if(matcher.group(1) != null) {
+						commentError = matcher.group(1);
+						error = new TokenError(lineNumber, commentError, ErrorType.comentario_aberto);
+						lexOut.addError(error);
 						System.out.println(lineNumber + ": replacing block comment end: " + matcher.start() + "  "
 								+ matcher.end() + " " + matcher.group(1));
 					isBlockCommentOpen = false;
@@ -213,6 +218,10 @@ public class Lexer {
 		LexIO lexOut = new LexIO(io);
 		String[] lines = io.getLines();
 		int lineNumber = 0;
+		String idError;
+		String numError;
+		String charError;
+		TokenError error = null;
 
 		String malformed = String.join("|", validStrings, malformedIdentifier, malformedFloat, malformedInt);
 
@@ -226,17 +235,30 @@ public class Lexer {
 			while (matcher.find()) {
 				if (matcher.group(1) != null) {
 					if(!matcher.group(1).matches("'[a-zA-Z0-9]'")) {
+						charError = matcher.group(1);
+						error = new TokenError(lineNumber, charError, ErrorType.caractere_mal_formado);
+						lexOut.addError(error);
 						System.out.println("On line " + (lineNumber + 1) + ", malformed character constant, removing " + matcher.start() + " " + matcher.end());
 						lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 						lineNumber--;
 						break;
 					}	
 				} else if (matcher.group(2) != null) {
+					idError = matcher.group(2);
+					error = new TokenError(lineNumber, idError, ErrorType.id_mal_formado);
+					lexOut.addError(error);
 					System.out.println("On line " + (lineNumber + 1) + ", malformed identifier, removing " + matcher.group());
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 					lineNumber--;
 					break;
 				} else if (matcher.group(3) != null || matcher.group(4) != null) {
+					if (matcher.group(3) != null){
+					numError = matcher.group(3);
+					}else{
+						numError = matcher.group(4);
+					}
+					error = new TokenError(lineNumber, numError, ErrorType.nro_mal_formado);
+					lexOut.addError(error);
 					System.out.println("On line " + (lineNumber + 1) + ", malformed number, removing " + matcher.start() + " " + matcher.end());
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 					lineNumber--;
