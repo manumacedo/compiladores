@@ -1,5 +1,5 @@
 
-public class TokenError extends Error{
+public class TokenError extends Error implements Comparable{
 
 	private ErrorType type;
 	private String representation;
@@ -31,5 +31,11 @@ public class TokenError extends Error{
 		this.type = type;
 	}
 
+
+	@Override
+	public int compareTo(Object o) {
+		TokenError anotherError = (TokenError) o;
+		return anotherError.line - this.line;
+	}
 
 }

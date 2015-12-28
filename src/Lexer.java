@@ -292,7 +292,7 @@ public class Lexer {
 					lineNumber--;
 					break;
 				}  else if (matcher.group(6) != null) {
-					opError = matcher.group(5);
+					opError = matcher.group(6);
 					error = new TokenError(lineNumber, opError, ErrorType.operador_mal_formado);
 					lexOut.addError(error);
 					System.out.println("On line " + (lineNumber + 1) + ", malformed operator, removing " + matcher.start() + " " + matcher.end());
@@ -308,7 +308,9 @@ public class Lexer {
 			}
 			lineNumber++;
 		}
-
+		
+		lexOut.sortErrors();
+		
 		System.out.println("removed malformed stuff ---------");
 		return lexOut;
 	}

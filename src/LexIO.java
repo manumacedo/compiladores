@@ -7,19 +7,20 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 
 public class LexIO {
-	
+
 	private ArrayList<Token> tokens;
-	private ArrayList<Error> errors;
-	private String [] lines;
+	private ArrayList<TokenError> errors;
+	private String[] lines;
 	private File inputFile;
-	
+
 	public LexIO(File inputFile) {
-		
-		this.setErrors(new ArrayList<Error>());
+
+		this.setErrors(new ArrayList<TokenError>());
 		this.setValidTokens(new ArrayList<Token>());
-		
+
 		this.setInputFile(inputFile);
 		byte[] encoded;
 		try {
@@ -30,7 +31,7 @@ public class LexIO {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public LexIO(LexIO pipe) {
 		this.setInputFile(pipe.getInputFile());
 		this.setLines(pipe.getLines());
@@ -42,7 +43,7 @@ public class LexIO {
 		PrintWriter writer;
 		try {
 			writer = new PrintWriter(fileName, "UTF-8");
-			for(String line : lines) {
+			for (String line : lines) {
 				writer.println(line);
 			}
 			writer.close();
@@ -59,12 +60,12 @@ public class LexIO {
 		this.inputFile = inputFile;
 	}
 
-	public ArrayList<Error> getErrors() {
+	public ArrayList<TokenError> getErrors() {
 		return errors;
 	}
 
-	public void setErrors(ArrayList<Error> errors) {
-		this.errors = errors;
+	public void setErrors(ArrayList<TokenError> arrayList) {
+		this.errors = arrayList;
 	}
 
 	public ArrayList<Token> getTokens() {
@@ -74,21 +75,31 @@ public class LexIO {
 	public void setValidTokens(ArrayList<Token> tokens) {
 		this.tokens = tokens;
 	}
-	
+
 	public void addToken(Token token) {
 		this.tokens.add(token);
 	}
-	
-	public void addError (TokenError t){
+
+	public void addError(TokenError t) {
 		this.errors.add(t);
 	}
 
-	public String [] getLines() {
+	public String[] getLines() {
 		return lines;
 	}
 
-	public void setLines(String [] lines) {
+	public void setLines(String[] lines) {
 		this.lines = lines;
+	}
+
+	public void sortErrors() {
+		this.errors.sort(new Comparator<TokenError>() {
+			@Override
+			public int compare(TokenError error, TokenError anotherError) {
+				return error.getLine() - anotherError.getLine();
+			}
+		});
+
 	}
 
 }

@@ -6,7 +6,7 @@ public class Main {
 	private static final String IN_DIR = "input";
 	private static final String OUT_DIR = "output";
 	
-	public static void main(String [] args) {
+	public static void main(String [] args) throws InterruptedException {
 		
 		
 		
@@ -53,6 +53,12 @@ public class Main {
 				
 				for(Token token: tokens.getTokens()) {
 					System.out.println( token.getType() + " " + token.getRepresentation() + " " + token.getLine());
+				}
+
+				
+				Thread.sleep(500);
+				for(TokenError error : tokens.getErrors()) {
+					System.err.println( error.getRepresentation() + " " + error.getType() + " " + " " + error.getLine());
 				}
 				
 				System.exit(0);
