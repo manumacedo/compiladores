@@ -13,22 +13,23 @@ public class Lexer {
 	static final String validStrings = "(\"[ #-~]*\"|\'[ !#-~]*\')";
 
 	/**
-	 * Qualquer caractere dentro da string, se não houve match da string válida anterior
+	 * Qualquer caractere dentro da string, se não houve match da string válida
+	 * anterior
 	 */
-	static final String openStrings = "(\".*?(?:\"|$))|(\'.*?(?:\'|$))"; 
+	static final String openStrings = "(\".*?(?:\"|$))|(\'.*?(?:\'|$))";
 
 	/**
-	 *  Início de comentário de linha
+	 * Início de comentário de linha
 	 */
-	static final String lineCommentStart = "(//.*)"; 
+	static final String lineCommentStart = "(//.*)";
 
 	/**
-	 *  Comentário de bloco que não se estende para outras linhas
+	 * Comentário de bloco que não se estende para outras linhas
 	 */
 	static final String inlineBlockComment = "(/\\*.*?\\*/)";
 
 	/**
-	 *  Início de um comentário de bloco que se estende para outras linhas
+	 * Início de um comentário de bloco que se estende para outras linhas
 	 */
 	static final String blockCommentStart = "(/\\*.*)";
 
@@ -38,8 +39,8 @@ public class Lexer {
 	static final String blockCommentEnd = "(.*?\\*\\/)";
 
 	/**
-	 * Símbolos que delimitam identificadores e números.
-	 * Símbolos inválidos que transformam identificadores
+	 * Símbolos que delimitam identificadores e números. Símbolos inválidos que
+	 * transformam identificadores
 	 */
 	static final String delimiterSymbols = "[\\[\\]\\-+*/|&(){}><=,.;\\s]";
 
@@ -47,7 +48,7 @@ public class Lexer {
 	static final String invalidSymbols = "[^\\[\\]\\-+*/|&(){}><=,.;\\s0-9_]";
 
 	/**
-	 *  ID mal formado
+	 * ID mal formado
 	 */
 	static final String malformedIdentifier = "([a-zA-Z][a-zA-Z0-9_]+" + invalidSymbolsWithLetters + ".*?(?="
 			+ delimiterSymbols + "|$))";
@@ -58,11 +59,9 @@ public class Lexer {
 	static final String malformedFloat = "(\\d+\\.\\d+" + invalidSymbols + ".*?(?=" + delimiterSymbols + "|$))";
 	static final String malformedInt = "(\\d+" + invalidSymbols + ".*?(?=" + delimiterSymbols + "|$))";
 	static final String malformedOperator = "(!(?:[^=\\n]|$)|&(?:[^&\\n]|$)|\\|(?:[^\\|\\n]|$))";
-	
-	
-	
-	static final String identifiers = "((?<=" + delimiterSymbols + "|^)[a-zA-Z][a-zA-Z0-9_]*(?="
-			+ delimiterSymbols + "|$))";
+
+	static final String identifiers = "((?<=" + delimiterSymbols + "|^)[a-zA-Z][a-zA-Z0-9_]*(?=" + delimiterSymbols
+			+ "|$))";
 
 	/**
 	 * Números válidos
@@ -74,16 +73,14 @@ public class Lexer {
 	 * Operadores válidos
 	 */
 	static final String operators = "([-][-]|[+][+]|[><=]=?|[!][=]|[|][|]|&&|[+\\-*/.])";
-	
-	
 
 	/**
 	 * Delimitadores
 	 */
 	static final String delimiters = "([{}()\\[\\];,])";
-	
+
 	// TODO operadores mal formados
-	
+
 	/**
 	 * Remove o lixo do código: Strings não fechadas e caracteres constantes não
 	 * fechados Strings com Gera os erros, retorna um pipe para a próxima
@@ -93,7 +90,7 @@ public class Lexer {
 	 * @return
 	 */
 	public static LexIO removeTrash(LexIO io) {
-		
+
 		LexIO lexOut = new LexIO(io);
 		String[] lines = io.getLines();
 		int lineNumber = 0;
@@ -115,13 +112,15 @@ public class Lexer {
 					strError = matcher.group(2);
 					error = new TokenError(lineNumber, strError, ErrorType.cadeia_mal_formada);
 					lexOut.addError(error);
-					System.out.println("On line " + (lineNumber + 1) + ", invalid string, removing " + matcher.start() + " " + matcher.end());
+					System.out.println("On line " + (lineNumber + 1) + ", invalid string, removing " + matcher.start()
+							+ " " + matcher.end());
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 				} else if (matcher.group(3) != null) {
 					charError = matcher.group(3);
 					error = new TokenError(lineNumber, charError, ErrorType.caractere_mal_formado);
 					lexOut.addError(error);
-					System.out.println("On line " + (lineNumber + 1) + ", open character constant, removing " + matcher.start() + " " + matcher.end());
+					System.out.println("On line " + (lineNumber + 1) + ", open character constant, removing "
+							+ matcher.start() + " " + matcher.end());
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 				}
 			}
@@ -167,8 +166,8 @@ public class Lexer {
 
 		String commentError;
 		TokenError error = null;
-		
-		lineCommentsPattern = String.join("|", validStrings, inlineBlockComment, lineCommentStart, blockCommentStart);	
+
+		lineCommentsPattern = String.join("|", validStrings, inlineBlockComment, lineCommentStart, blockCommentStart);
 
 		openCommentPattern = String.join("|", blockCommentEnd, "(^.*?$)");
 
@@ -194,7 +193,7 @@ public class Lexer {
 				// Comentário de bloco aberto
 
 				if (isBlockCommentOpen) {
-					if(matcher.group(1) != null) {
+					if (matcher.group(1) != null) {
 						System.out.println(lineNumber + ": replacing block comment end: " + matcher.start() + "  "
 								+ matcher.end() + " " + matcher.group(1));
 						isBlockCommentOpen = false;
@@ -225,10 +224,10 @@ public class Lexer {
 			if (skipLine)
 				lineNumber++;
 		}
-		
-		if(error != null)
+
+		if (error != null)
 			lexOut.addError(error);
-		
+
 		System.out.println("removed comments ---------");
 		lexOut.setLines(lines);
 		return lexOut;
@@ -245,7 +244,8 @@ public class Lexer {
 		String opError;
 		TokenError error = null;
 
-		String malformed = String.join("|", validStrings, malformedIdentifier, malformedFloat, malformedInt, operators, malformedOperator);
+		String malformed = String.join("|", validStrings, malformedIdentifier, malformedFloat, malformedInt, operators,
+				malformedOperator);
 
 		while (lineNumber < lines.length) {
 			StringBuilder builder = new StringBuilder(lines[lineNumber]);
@@ -257,11 +257,12 @@ public class Lexer {
 			while (matcher.find()) {
 				if (matcher.group(1) != null) {
 
-					if(!matcher.group(1).matches("'[a-zA-Z0-9]'")) {
+					if (!matcher.group(1).matches("'[a-zA-Z0-9]'")) {
 						charError = matcher.group(1);
 						error = new TokenError(lineNumber, charError, ErrorType.caractere_mal_formado);
 						lexOut.addError(error);
-						System.out.println("On line " + (lineNumber + 1) + ", malformed character constant, removing " + matcher.start() + " " + matcher.end());
+						System.out.println("On line " + (lineNumber + 1) + ", malformed character constant, removing "
+								+ matcher.start() + " " + matcher.end());
 
 						lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 						lineNumber--;
@@ -272,45 +273,45 @@ public class Lexer {
 					idError = matcher.group(2);
 					error = new TokenError(lineNumber, idError, ErrorType.id_mal_formado);
 					lexOut.addError(error);
-					System.out.println("On line " + (lineNumber + 1) + ", malformed identifier, removing " + matcher.group());
+					System.out.println(
+							"On line " + (lineNumber + 1) + ", malformed identifier, removing " + matcher.group());
 
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 					lineNumber--;
 					break;
 				} else if (matcher.group(3) != null || matcher.group(4) != null) {
 
-					if (matcher.group(3) != null){
-					numError = matcher.group(3);
-					}else{
+					if (matcher.group(3) != null) {
+						numError = matcher.group(3);
+					} else {
 						numError = matcher.group(4);
 					}
 					error = new TokenError(lineNumber, numError, ErrorType.nro_mal_formado);
 					lexOut.addError(error);
-					System.out.println("On line " + (lineNumber + 1) + ", malformed number, removing " + matcher.start() + " " + matcher.end());
+					System.out.println("On line " + (lineNumber + 1) + ", malformed number, removing " + matcher.start()
+							+ " " + matcher.end());
 
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 					lineNumber--;
 					break;
-				}  else if (matcher.group(6) != null) {
+				} else if (matcher.group(6) != null) {
 					opError = matcher.group(6);
 					error = new TokenError(lineNumber, opError, ErrorType.operador_mal_formado);
 					lexOut.addError(error);
-					System.out.println("On line " + (lineNumber + 1) + ", malformed operator, removing " + matcher.start() + " " + matcher.end());
+					System.out.println("On line " + (lineNumber + 1) + ", malformed operator, removing "
+							+ matcher.start() + " " + matcher.end());
 
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 					lineNumber--;
 					break;
 				}
-				 
-				
-				
 
 			}
 			lineNumber++;
 		}
-		
+
 		lexOut.sortErrors();
-		
+
 		System.out.println("removed malformed stuff ---------");
 		return lexOut;
 	}
@@ -327,8 +328,8 @@ public class Lexer {
 		for (int i = 0; i < tokens.size(); i++) {
 			Token token = tokens.get(i);
 			if (token.getType().equals(TokenType.OP) && token.getRepresentation().equals("-")) {
-				if(i == 0 || tokens.get(i-1).isBinaryOperator() || tokens.get(i-1).isDelimiter()){
-					if(tokens.get(i+1).isNumber()){
+				if (i == 0 || tokens.get(i - 1).isBinaryOperator() || tokens.get(i - 1).isDelimiter()) {
+					if (tokens.get(i + 1).isNumber()) {
 						tokens.remove(i);
 						Token num = tokens.get(i);
 						num.setRepresentation("-" + num.getRepresentation());
@@ -343,7 +344,8 @@ public class Lexer {
 		LexIO lexOut = new LexIO(io);
 		String[] lines = io.getLines();
 
-		String validTokensPattern = String.join("|", validStrings, identifiers, floatNumbers, intNumbers, operators, delimiters);
+		String validTokensPattern = String.join("|", validStrings, identifiers, floatNumbers, intNumbers, operators,
+				delimiters);
 
 		Pattern pattern = Pattern.compile(validTokensPattern);
 		Matcher matcher;
@@ -356,7 +358,7 @@ public class Lexer {
 		String operatorMatch;
 		String delimiterMatch;
 		Token token = null;
-		
+
 		while (lineNumber < lines.length) {
 			matcher = pattern.matcher(lines[lineNumber]);
 
@@ -385,7 +387,7 @@ public class Lexer {
 					token = new Token(lineNumber, intMatch, TokenType.NUM);
 				} else if (operatorMatch != null) {
 					token = new Token(lineNumber, operatorMatch, TokenType.OP);
-				} else if (delimiterMatch != null){
+				} else if (delimiterMatch != null) {
 					token = new Token(lineNumber, delimiterMatch, TokenType.DELIM);
 				}
 				if (token != null)
@@ -393,9 +395,9 @@ public class Lexer {
 			}
 			lineNumber++;
 		}
-		
+
 		Lexer.transformNegativeNumbers(lexOut);
-		
+
 		return lexOut;
 
 	}
