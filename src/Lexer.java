@@ -6,7 +6,7 @@ public class Lexer {
 	/**
 	 * Caracteres válidos para strings
 	 */
-	static final String validStrings = "(\"[ #-~]*\"|\'[ !#-~]*\')";
+	static final String validStrings = "(\"[ !#-~]*\"|\'[ !#-~]*\')";
 
 	/**
 	 * Qualquer caractere dentro da string, se não houve match da string válida
@@ -75,8 +75,8 @@ public class Lexer {
 	 */
 	static final String delimiters = "([{}()\\[\\];,])";
 	
-	static final String invalidExpression = "(" + invalidSymbolsWithLetters +   ".*?(?="
-			+ delimiterSymbols + "))";
+	static final String invalidExpression = "((?<=" + delimiterSymbols + "|^)([^\\[\\]\\-+*/|&(){}><=,.;\\s0-9!a-zA-Z]" +   ".*?(?="
+			+ delimiterSymbols + ")))";
 	
 
 	/**
@@ -94,10 +94,9 @@ public class Lexer {
 		int lineNumber = 0;
 		String strError;
 		String charError;
-		String invalidExpressionError;
 		TokenError error = null;
 
-		String allStrings = String.join("|", validStrings, openStrings, invalidExpression);
+		String allStrings = String.join("|", validStrings, openStrings);
 
 		while (lineNumber < lines.length) {
 			StringBuilder builder = new StringBuilder(lines[lineNumber]);
@@ -121,14 +120,7 @@ public class Lexer {
 					System.out.println("On line " + (lineNumber + 1) + ", open character constant, removing "
 							+ matcher.start() + " " + matcher.end());
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
-				} else if (matcher.group(4) != null) {
-					invalidExpressionError = matcher.group(4);
-					error = new TokenError(lineNumber, invalidExpressionError, ErrorType.expressao_invalida);
-					lexOut.addError(error);
-					System.out.println("On line " + (lineNumber + 1) + ", invalid expression, removing "
-							+ matcher.start() + " " + matcher.end());
-					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
-				}
+				} 
 			}
 			lineNumber++;
 		}
@@ -243,18 +235,19 @@ public class Lexer {
 		String numError;
 		String charError;
 		String opError;
+		String invalidExpressionError;
 		TokenError error = null;
 
 		String malformed = String.join("|", validStrings, malformedIdentifier, malformedFloat, malformedInt, operators,
-				malformedOperator);
+				malformedOperator, invalidExpression);
 
 		while (lineNumber < lines.length) {
 			StringBuilder builder = new StringBuilder(lines[lineNumber]);
 
-			// System.out.println("Line: " + builder.toString());
+			 System.out.println("Line: " + builder.toString());
 			Pattern pattern = Pattern.compile(malformed);
 			Matcher matcher = pattern.matcher(lines[lineNumber]);
-
+			
 			while (matcher.find()) {
 				if (matcher.group(1) != null) {
 
@@ -305,6 +298,13 @@ public class Lexer {
 					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 					lineNumber--;
 					break;
+				} else if (matcher.group(7) != null) {
+					invalidExpressionError = matcher.group(7);
+					error = new TokenError(lineNumber, invalidExpressionError, ErrorType.expressao_invalida);
+					lexOut.addError(error);
+					System.out.println("On line " + (lineNumber + 1) + ", invalid expression, removing "
+							+ matcher.start() + " " + matcher.end());
+					lines[lineNumber] = builder.replace(matcher.start(), matcher.end(), " ").toString();
 				}
 
 			}
