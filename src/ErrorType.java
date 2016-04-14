@@ -6,5 +6,6 @@ public enum ErrorType {
 	cadeia_mal_formada,
 	caractere_mal_formado,
 	comentario_aberto,
-	expressao_invalida
+	expressao_invalida,
+	falta_abre_parenteses
 }
