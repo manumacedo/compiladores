@@ -90,31 +90,285 @@ public class grammar {
 	public void contentClass(){
 		switch (current.getRepresentation()) {
         case "void":
-            recConst();
-            recConteudoClasse();
+            idDeclaration();
+            contentClass();
             break;
         case "const":
-            recIdDeclaracao();
-            recConteudoClasse();
+            constantDeclaration();
+            contentClass();
             break;
         default:
-            if (proximo.getTipo().equals("palavra_reservada") || proximo.getTipo().equals("id")) {
-                recIdDeclaracao();
-                recConteudoClasse();
+            if (current.getType().equals("palavra_reservada") || current.getType().equals("identificador")) {
+                idDeclaration();
+                contentClass();
                 break;
-            } else if (!proximo.getValor().equals("}") && !proximo.getValor().equals("class")) { //recuperaçao do erro, verifica se acabou o bloco, ou surgiu outra classe
-                erroSintatico("falta declaraçao de variavel ou de metodo");
-                proximo = proximo();
-                recConteudoClasse();
+            } else if (!current.getRepresentation().equals("}") && !current.getRepresentation().equals("class")) {
+                //erro - erroSintatico("falta declaraçao de variavel ou de metodo");
+                current = nextToken();
+                contentClass();
             }
             break;
-    }
+		}
 	}
 	
-	public void idDeclaration(ArrayList<Token> tokens, int i, Parsing parser){
-		
+	/**
+	 * Reconhece Declaração de 
+	 * 
+	 */
+	public void idDeclaration(){
+		//atual = new Simbolos();
+        switch (current.getRepresentation()) {
+            case "void":
+                consumeToken("void");
+                consumeToken("identificador");
+                consumeToken("(");
+                paramDeclaration();
+                consumeToken(")");
+                consumeToken("{");
+                contentMethod();
+                consumeToken("}");
+                //atual.setCategoria(Simbolos.MET);
+                //atual.setconsumeToken(Simbolos.VOID);
+                //atual.setNome(current.getValor());
+                //escopo.addFilho(atual);
+                //Simbolos anterior = escopo;
+                //escopo = atual;
+                //escopo = anterior;
+                break;
+            case "char":
+                consumeToken("char");
+                consumeToken("identificador");
+                idComplement();
+                //atual.setconsumeToken(Simbolos.CHAR);
+                //atual.setNome(current.getValor());
+                break;
+            case "int":
+                consumeToken("int");
+                consumeToken("identificador");
+                idComplement();
+                //atual.setconsumeToken(Simbolos.INT);
+                //atual.setNome(current.getValor());
+                break;
+            case "bool":
+                consumeToken("bool");
+                consumeToken("identificador");
+                idComplement();
+                //atual.setconsumeToken(Simbolos.BOOL);
+                //atual.setNome(current.getValor());
+                break;
+            case "string":
+                consumeToken("string");
+                consumeToken("identificador");
+                idComplement();
+                //atual.setconsumeToken(Simbolos.STRING);
+                //atual.setNome(current.getValor());
+                break;
+            case "float":
+                consumeToken("float");
+                consumeToken("identificador");
+                idComplement();
+                //atual.setconsumeToken(Simbolos.FLOAT);
+                //atual.setNome(current.getValor());
+                break;
+            default:
+                if (current.getType().equals("identificador")) {
+                    consumeToken("identificador");
+                    consumeToken("identificador");
+                    idComplement();
+                    //atual.setconsumeToken(Simbolos.OBJECT);
+                    //atual.setNome(current.getValor());
+                    break;
+                } else {
+                    //error - erroSintatico("espera um tipo: id, int, float, char, string, bool, void");
+                }
+                break;
+        }
 	}
 	
-	public void idComplement(ArrayList<Token> tokens, int i, Parsing parser){
+	/**
+	 * Reconhece as declarações de constantes
+	 */
+	public void constantDeclaration(){
+		switch (current.getRepresentation()) {
+        case "const":
+            consumeToken("const");
+            consumeToken("{");
+            constantBlock();
+            consumeToken("}");
+            break;
+        default:
+            //erro - erroSintatico("Esperava um bloco de contantes");
+            break;
+		}
+	}
+	
+	/**
+	 * Reconhece as declarações de parametro
+	 */
+	public void paramDeclaration(){
+		//atual = new Simbolos();
+        switch (current.getRepresentation()) {
+            case "char":
+                consumeToken("char");
+                consumeToken("id");
+                recVarVet();
+                recListaParametros();
+                //atual.setTipo(Simbolos.CHAR);
+                //atual.setNome(proximo.getValor());
+                break;
+            case "int":
+                consumeToken("int");
+                consumeToken("id");
+                recVarVet();
+                recListaParametros();
+                //atual.setTipo(Simbolos.INT);
+                //atual.setNome(proximo.getValor());
+                break;
+            case "bool":
+                consumeToken("bool");
+                consumeToken("id");
+                recVarVet();
+                recListaParametros();
+                //atual.setTipo(Simbolos.BOOL);
+                //atual.setNome(proximo.getValor());
+                break;
+            case "string":
+                consumeToken("string");
+                consumeToken("id");
+                recVarVet();
+                recListaParametros();
+               // atual.setTipo(Simbolos.STRING);
+                //atual.setNome(proximo.getValor());
+                break;
+            case "float":
+                consumeToken("float");
+                consumeToken("id");
+                recVarVet();
+                recListaParametros();
+               //atual.setTipo(Simbolos.FLOAT);
+                //atual.setNome(proximo.getValor());
+                break;
+            default:
+                if (current.getType().equals("id")) {
+                	consumeToken("id");
+                    consumeToken("id");
+                    recVarVet();
+                    recListaParametros();
+                  //atual.setTipo(Simbolos.OBJECT);
+                    //atual.setNome(proximo.getValor());
+                }
+                break;
+        }
+	}
+	
+	/**
+	 * Reconhece as declarações de blocos de constantes
+	 */
+	public void constantBlock(){
+		//atual = new Simbolos();
+        //atual.setCategoria(Simbolos.CONST);
+        switch (current.getRepresentation()) {
+            case "char":
+                consumeToken("char");
+                recListaConst();
+              //atual.setTipo(Simbolos.CHAR);
+                break;
+            case "int":
+                consumeToken("int");
+                recListaConst();
+              //atual.setTipo(Simbolos.INT);
+                break;
+            case "bool":
+                consumeToken("bool");
+                recListaConst();
+              //atual.setTipo(Simbolos.BOOL);
+                break;
+            case "string":
+                consumeToken("string");
+                recListaConst();
+              //atual.setTipo(Simbolos.STRING);
+                break;
+            case "float":
+                consumeToken("float");
+                recListaConst();
+              //atual.setTipo(Simbolos.FLOAT);
+                break;
+            default:
+                if (!current.getRepresentation().equals("}")) {
+                    //erro - erroSintatico("falta palavra reservada: int, char, bool, string, float");
+                    current = nextToken();
+                    constantBlock();
+                }
+                break;
+        }
+	}
+	
+	/**
+	 * Reconhece o Conteudo de metodo
+	 */
+	public void contentMethod(){
+		switch (current.getType()) {
+        case "palavra_reservada":
+            if (current.getRepresentation().equals("return")) {
+                break;
+            }
+            recComando();
+            contentMethod();
+            break;
+        case "id":
+            recComando();
+            contentMethod();
+            break;
+        default:
+            if (!current.getRepresentation().equals("}")) {
+                //erro - erroSintatico("Conteudo de médoto inválido, espera um comando.");
+                current = nextToken();
+                contentMethod();
+            }
+            break;
+		}
+	}
+	
+	/**
+	 * Reconhece o complemento de identificadores 
+	 * 
+	 */
+	public void idComplement(){
+		 switch (current.getRepresentation()) {
+         case "[":
+             //atual.setTipo(Simbolos.VET);
+             consumeToken("[");
+             recIndice();
+             consumeToken("]");
+             recListaVetor();
+             break;
+         case "(":
+             //atual.setTipo(Simbolos.MET);
+             //escopo.addFilho(atual);
+             //Simbolos anterior = escopo;
+             //escopo = atual;
+        	//escopo = anterior;
+             consumeToken("(");
+             recDeclParametros();
+             consumeToken(")");
+             consumeToken("{");
+             contentMethod();
+             consumeToken("return");
+             recRetorno();
+             consumeToken("}");
+             break;
+         case ",":
+             //atual.setTipo(Simbolos.VAR);
+             recListaVariavel();
+             break;
+         case ";":
+            // atual.setTipo(Simbolos.VAR);
+             //escopo.addFilho(atual);
+             consumeToken(";");
+             break;
+         default:
+             //error - erroSintatico("falta ; ou , ou [ ou (");
+             break;
+     }
 	}
 }
