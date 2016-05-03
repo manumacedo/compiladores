@@ -21,17 +21,20 @@ public class Main {
 				LexIO noMalformed = Lexer.removeMalformed(noComments);
 				LexIO tokens = Lexer.getValidTokens(noMalformed);
 				
-				tokens.writeOutput(OUT_DIR + "/" + file.getName());
+//				tokens.writeOutput(OUT_DIR + "/" + file.getName());
 				
 				
-				for(Token token: tokens.getTokens()) {
-					System.out.println(  token.getRepresentation() + " " + token.getType() + " " + token.getLine());
-				}
-
-				Thread.sleep(100); // used for debug
-				for(TokenError error : tokens.getErrors()) {
-					System.err.println( error.getRepresentation() + " " + error.getType() + " " + " " + error.getLine());
-				}
+//				for(Token token: tokens.getTokens()) {
+//					System.out.println(  token.getRepresentation() + " " + token.getType() + " " + token.getLine());
+//				}
+//
+//				Thread.sleep(100); // used for debug
+//				for(TokenError error : tokens.getErrors()) {
+//					System.err.println( error.getRepresentation() + " " + error.getType() + " " + " " + error.getLine());
+//				}
+				
+				new SemanticAnalyzer(tokens).execute();
+				
 		}
 	}
 }

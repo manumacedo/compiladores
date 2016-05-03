@@ -390,9 +390,9 @@ public class Lexer {
 						token.setType(TokenType.palavra_reservada);
 
 				} else if (floatMatch != null) {
-					token = new Token(lineNumber, floatMatch, TokenType.numero);
+					token = new Token(lineNumber, floatMatch, TokenType.decimal);
 				} else if (intMatch != null) {
-					token = new Token(lineNumber, intMatch, TokenType.numero);
+					token = new Token(lineNumber, intMatch, TokenType.inteiro);
 				} else if (operatorMatch != null) {
 					token = new Token(lineNumber, operatorMatch, TokenType.operador);
 				} else if (delimiterMatch != null) {

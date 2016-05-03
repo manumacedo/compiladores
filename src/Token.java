@@ -1,7 +1,7 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class Token {
+public class Token implements Comparable<Token>{
 	
 	private static final ArrayList<String> keywords = new ArrayList<String>(
 			Arrays.asList(
@@ -22,6 +22,14 @@ public class Token {
 		this.line = line;
 		this.representation = representation;
 		this.type = type;
+	}
+	
+	public boolean isCommand () {
+		return this.isAny("read", "write", "if", "while", "new") || this.isType();
+	}
+	
+	public boolean isType() {
+		return this.isPrimitiveType() || this.isIdentifier();
 	}
 	
 	public int getLine() {
@@ -46,8 +54,32 @@ public class Token {
 		return keywords.contains(t.getRepresentation());
 	}
 	
+	public boolean isInteger () {
+		return this.type == TokenType.inteiro;
+	}
+	
+	public boolean isChar () {
+		return this.type == TokenType.caractere_constante;
+	}
+	
+	public boolean isBool () {
+		return this.isAny("true", "false");
+	}
+	
+	public boolean isString () {
+		return this.type == TokenType.cadeia_constante;
+	}
+	
+	public boolean isIdentifier () {
+		return this.type == TokenType.identificador;
+	}
+	
+	public boolean isFloat () {
+		return this.type == TokenType.decimal;
+	}
+	
 	public boolean isNumber(){
-		return this.type == TokenType.numero;
+		return (this.type == TokenType.decimal) || (this.type == TokenType.inteiro);
 	}
 	
 	public boolean isBinaryOperator(){
@@ -60,4 +92,55 @@ public class Token {
 		return this.representation.matches(delimiters);
 	}
 	
+	public boolean isPrimitiveType() {
+		return this.isAny("int", "float", "bool", "string", "char");
+	}
+	
+	public boolean is (String rep) {
+		return this.getRepresentation().equals(rep);
+	}
+	
+	public boolean isAny(String... args) {
+		for (String check : args) {
+			if(this.is(check))
+				return true;
+		}
+		
+		return false;
+	}
+	
+	public boolean isAssignable() {
+		return this.isAny("-", "++", "--", "(", "true", "false") || this.isIdentifier() || this.isPrimitive();
+	}
+	
+	public boolean isPrimitive () {
+		return this.isNumber() || this.isChar() || this.isString();
+	}
+
+	
+	@Override
+	public int compareTo(Token anotherToken) {
+		return this.getRepresentation().compareTo(anotherToken.getRepresentation());
+	}
+	
+	@Override
+	public String toString() {
+		return this.getRepresentation();
+	}
+
+	public boolean isLogicalOperator() {
+		return this.isAny("&&", "||");
+	}
+
+	public boolean isEqualityOperator() {
+		return this.isAny("==", "!=");
+	}
+
+	public boolean isArithmeticOperator() {
+		return this.isAny("+", "-", "*", "/");
+	}
+	
+	public boolean isRelationalOperator() {
+		return this.isAny(">", "<", ">=", "<=");
+	}
 }
