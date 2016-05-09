@@ -8,10 +8,10 @@ public class SemanticAnalyzer {
 	private final boolean DECL = false; 
 	
 	private ArrayList<Token> tokens;
-	private Stack<Token> scopeStack;
+	private Stack<Scope> scopeStack;
 	private int currentTokenIndex;
 	
-	private TreeMap<Token, Scope> scopeTree;
+	private TreeMap<SemanticUnit, Scope> scopeTree;
 	
 	
 	public SemanticAnalyzer (LexIO io) {
@@ -19,6 +19,8 @@ public class SemanticAnalyzer {
 		this.scopeStack = new Stack<>();
 		this.currentTokenIndex = 0;
 		this.scopeTree = new TreeMap<>();
+		
+		this.scopeStack.push(new Scope(new Token(-1, "GLOBAL", null), null));
 	}
 	
 	private Token currentToken() {
@@ -58,10 +60,19 @@ public class SemanticAnalyzer {
 	
 	private void parseIdentifier(boolean isAccess){
 		Token next = this.nextToken();
-		if(next.isIdentifier())
+		if(next.isIdentifier()){
 			System.out.println("Parsing " + next.getRepresentation() + (isAccess ? "  - access" : " - decl"));
-		else
+			
+			if(isAccess) {
+				
+			} else {
+				//this.scopeStack.peek().insertUnit(new SemanticUnit(next.getRepresentation(), currentDeclarationType, currentCategory));
+			}
+			
+		}
+		else {
 			System.out.println("Wow, deu ruim. Expected Identifier, got " + next.getRepresentation());
+		}
 	}
 	
 	
@@ -100,7 +111,7 @@ public class SemanticAnalyzer {
 	
 	private void parseConstantList() {
 		// <lista_const> ::= Identifier '=' <atribuicao_costante> <aux_declaracao>
-		parseIdentifier(ACCESS);
+		parseIdentifier(DECL);
 		parseTerminal("=");
 		parseConstantAssignment();
 		parseConstantListExtension();
@@ -264,7 +275,7 @@ public class SemanticAnalyzer {
 	private void parseVectorIndex() {
 		
 		if(this.currentToken().isNumber()) {
-			this.nextToken();
+			parseTerminal(this.currentToken().getRepresentation());
 		} else if (this.currentToken().isIdentifier()) {
 			parseIdentifier(ACCESS);
 		}
@@ -340,9 +351,9 @@ public class SemanticAnalyzer {
 	private void parseCommand() {
 		
 		if(this.currentToken().is("read")) {
-			parseRead();
+			recRead();
 		} else if (this.currentToken().is("write")) {
-			parseWrite();
+			recWrite();
 		} else if (this.currentToken().isType() && this.lookAhead().isIdentifier()) {
 			// <tipo> Identifier <id_decl>
 			
@@ -357,11 +368,11 @@ public class SemanticAnalyzer {
 			parseCommandExtension();
 		} else if (this.currentToken().is("if")) {
 			
-			parseIf();
+			recIf();
 			
 		} else if (this.currentToken().is("while")) {
 			
-			parseWhile();
+			recWhile();
 			
 		}
 		
@@ -425,20 +436,71 @@ public class SemanticAnalyzer {
             break;
         case "true":
         case "false":
-            parseLogicalOperator();
+            recOpLogico();
             break;
         case "-":
             parseTerminal("-");
-            parseNegative();
+            recNegativo();
             break;
         default:
             if(this.currentToken().isIdentifier()) {
             	parseIdentifierAccess();
             } else if (this.currentToken().isNumber()) {
-            	parseNumericalOperand();
+            	parseTerminal(this.currentToken().getRepresentation());
+            	recOperadorNumero();
             } else if (this.currentToken().isChar() || this.currentToken().isString()) {
-            	this.nextToken();
+            	parseTerminal(this.currentToken().getRepresentation());
             }
+        }
+    }
+	
+	private void recNegativo() {
+        switch (this.currentToken().getRepresentation()) {
+            case "(":
+                parseTerminal("(");
+                recNegativo();
+                parseTerminal(")");
+                break;
+            case "++":
+            case "--":
+                parseIdentifierAccess();
+                break;
+            default:
+            	if(this.currentToken().isNumber()){
+                    parseTerminal(this.currentToken().getRepresentation());
+                    recOperadorNumero();
+            	} else if (this.currentToken().isIdentifier())  {
+            		parseIdentifierAccess();
+            	}
+        }
+    }
+	
+	private void recOperadorNumero() {
+        switch (this.currentToken().getRepresentation()) {
+            case ">":
+            case "<":
+            case ">=":
+            case "<=":
+                parseTerminal(this.currentToken().getRepresentation());
+                recExpAritmetica();
+                recOpLogico();
+                break;
+            case "+":
+            case "-":
+            case "*":
+            case "/":
+            	parseTerminal(this.currentToken().getRepresentation());
+                recExpAritmetica();
+                recExpRelacionalOpcional();
+                break;
+            case "==":
+            case "!=":
+            	parseTerminal(this.currentToken().getRepresentation());
+                recExpAritmetica();
+                recOpLogico();
+                break;
+            default:
+                break;
         }
     }
 	
@@ -448,40 +510,908 @@ public class SemanticAnalyzer {
 		}
 	}
 	
+	private void recExpRelacionalOpcional() {
+        switch (this.currentToken().getRepresentation()) {
+            case ">":
+            case "<":
+            case ">=":
+            case "<=":
+            	parseTerminal(this.currentToken().getRepresentation());
+                recExpAritmetica();
+                recOpLogico();
+                break;
+            default:
+                break;
+        }
+    }
+	
 	private void parseOperator() { 
 		if(this.currentToken().isRelationalOperator()) {
 			// <operador_relacional> <exp_aritmetica><op_logico>
-			parseRelationalOperator();
-			parseArithmeticExpression();
-			parseLogicalOperator();
+			recOpRelacional();
+			recExpAritmetica();
+			recOpLogico();
 		} else if (this.currentToken().isArithmeticOperator()) {
 			//<operador_aritmetico><exp_aritmetica><exp_relacional_opcional>
 			parseArithmeticOperator();
-			parseArithmeticExpression();
-			parseOptionalRelationalExpression();
+			recExpAritmetica();
+			
 		} else if (this.currentToken().isEqualityOperator()) {
 			// <operador_igualdade><atribuicao>
 			parseEqualityOperator();
 			parseAssignment();
 		} else if (this.currentToken().isLogicalOperator()) {
 			// <operador_logico><exp>
-			parseLogicalOperator();
-			parseExpression();
+			recOpLogico();
+			recExp();
 		}
 		
 	}
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	private void pushScope (Token scopedToken) {
-		this.scopeStack.push(scopedToken);
+	private void parseEqualityOperator() {
+		parseTerminal(this.currentToken().getRepresentation());
 	}
+
+	private void parseArithmeticOperator() {
+		parseTerminal(this.currentToken().getRepresentation());
+	}
+
+	private void recOpLogico() {
+        switch (this.currentToken().getRepresentation()) {
+            case "==":
+                parseTerminal("==");
+                recExpLogica();
+                break;
+            case "!=":
+            	parseTerminal("!=");
+                recExpLogica();
+                break;
+            case "&&":
+            	parseTerminal("&&");
+                recExp();
+                break;
+            case "||":
+            	parseTerminal("||");
+                recExp();
+                break;
+            default:
+                break;
+        }
+    }
+	
+	private void parseIdentifierAccess() {
+        switch (this.currentToken().getRepresentation()) {
+            case "++":
+                parseTerminal("++");
+                parseIdentifier(ACCESS);
+                recOperacao();
+                break;
+            case "--":
+                parseTerminal("--");
+                parseIdentifier(ACCESS);
+                recOperacao();
+                break;
+            default:
+                if(this.currentToken().isIdentifier()) {
+                	parseIdentifier(ACCESS);
+                    recAcesso();
+                    recOperacao();
+                }
+        }
+    }
+
+    private void recAcesso() {
+        switch (this.currentToken().getRepresentation()) {
+            case "[":
+                parseTerminal("[");
+                parseVectorIndex();
+                parseTerminal("]");
+                break;
+            case "(":
+                parseTerminal("(");
+                recParametros();
+                parseTerminal(")");
+                break;
+            case "++":
+                parseTerminal("++");
+                break;
+            case "--":
+                parseTerminal("--");
+                break;
+            case ".":
+                parseTerminal(".");
+                parseIdentifier(ACCESS);
+                recChamadaMetodo();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void recOperacao() {
+        switch (this.currentToken().getRepresentation()) {
+            case ">":
+            case "<":
+            case ">=":
+            case "<=":
+            case "+":
+            case "-":
+            case "*":
+            case "/":
+            case "==":
+            case "!=":
+            case "&&":
+            case "||":
+                parseOperator();
+                break;
+        }
+    }
+
+    private void recChamadaMetodo() {
+        switch (this.currentToken().getRepresentation()) {
+            case "(":
+                parseTerminal("(");
+                recParametros();
+                parseTerminal(")");
+                break;
+            default:
+                break;
+
+        }
+    }
+
+    private void recParametros() {
+        switch (this.currentToken().getRepresentation()) {
+            case "(":
+                parseAssignment();
+                recNovoParametro();
+                break;
+            case "true":
+                parseAssignment();
+                recNovoParametro();
+                break;
+            case "false":
+                parseAssignment();
+                recNovoParametro();
+                break;
+            case "-":
+                parseAssignment();
+                recNovoParametro();
+                break;
+            case "++":
+                parseAssignment();
+                recNovoParametro();
+                break;
+            case "--":
+                parseAssignment();
+                recNovoParametro();
+                break;
+            default:
+                switch (this.currentToken().getType()) {
+                    case identificador:
+                    case inteiro:
+                    case decimal:
+                    case cadeia_constante:
+                    case caractere_constante:
+                        parseAssignment();
+                        recNovoParametro();
+                        break;
+                    default:
+                        break;
+                }
+                break;
+        }
+    }
+
+    private void recNovoParametro() {
+        switch (this.currentToken().getRepresentation()) {
+            case ",":
+                parseTerminal(",");
+                recParametros();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void recInicializaObjeto() {
+        parseTerminal("new");
+        parseIdentifier(ACCESS);
+        parseTerminal(";");
+    }
+
+    private void recWhile() {
+        parseTerminal("while");
+        parseTerminal("(");
+        recExp();
+        parseTerminal(")");
+        parseTerminal("{");
+        recConteudoEstrutura();
+        parseTerminal("}");
+    }
+
+    private void recRead() {
+        parseTerminal("read");
+        parseTerminal("(");
+        parseIdentifier(ACCESS);
+        recListaRead();
+        parseTerminal(")");
+        parseTerminal(";");
+    }
+
+    private void recListaRead() {
+        switch (this.currentToken().getRepresentation()) {
+            case ",":
+                parseTerminal(",");
+                parseIdentifier(ACCESS);
+                recListaRead();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void recWrite() {
+        parseTerminal("write");
+        parseTerminal("(");
+        recParametrosWrite();
+        parseTerminal(")");
+        parseTerminal(";");
+    }
+
+    private void recParametrosWrite() {
+        recImprimiveis();
+        recNovoParametroWrite();
+    }
+
+    private void recNovoParametroWrite() {
+
+        switch (this.currentToken().getRepresentation()) {
+            case ",":
+                parseTerminal(",");
+                recParametrosWrite();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void recImprimiveis() {
+        switch (this.currentToken().getType()) {
+            case identificador:
+                parseIdentifier(ACCESS);
+                recOpWrite();
+                break;
+                
+            case decimal:
+            case inteiro:
+            case cadeia_constante:
+            case caractere_constante:
+                parseTerminal(this.currentToken().getRepresentation());
+                recOpWrite();
+                break;
+            default:
+                switch (this.currentToken().getRepresentation()) {
+                    case "(":
+                        parseTerminal("(");
+                        recImprimiveis();
+                        parseTerminal(")");
+                        break;
+                    default:
+                        // erroSintatico("falta identificador, numero, cadeia constante, caracter consatante ou (");
+                        break;
+                }
+        }
+    }
+
+    private void recOpWrite() {
+        switch (this.currentToken().getRepresentation()) {
+            case "+":
+                parseTerminal("+");
+                recExpAritmetica();
+                break;
+            case "-":
+                parseTerminal("-");
+                recExpAritmetica();
+                break;
+            case "*":
+                parseTerminal("*");
+                recExpAritmetica();
+                break;
+            case "/":
+                parseTerminal("");
+                recExpAritmetica();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void recIf() {
+        parseTerminal("if");
+        parseTerminal("(");
+        recExp();
+        parseTerminal(")");
+        parseTerminal("{");
+        recConteudoEstrutura();
+        parseTerminal("}");
+        recComplementoIf();
+    }
+
+    private void recComplementoIf() {
+        switch (this.currentToken().getRepresentation()) {
+            case "else":
+                parseTerminal("else");
+                parseTerminal("{");
+                recConteudoEstrutura();
+                parseTerminal("}");
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void recConteudoEstrutura() {
+    	if(Token.isKeyword(currentToken()) || currentToken().isIdentifier()) {
+    		recComandoEstrutura();
+            recConteudoEstrutura();
+    	}
+    }
+
+    private void recComandoEstrutura() {
+        switch (this.currentToken().getRepresentation()) {
+            case "read":
+                recRead();
+                break;
+            case "write":
+                recWrite();
+                break;
+            case "new":
+                recInicializaObjeto();
+                recInicializaObjeto();
+                break;
+            case "if":
+                recIf();
+                break;
+            case "while":
+                recWhile();
+                break;
+            case "char":
+            case "int":
+            case "bool":
+            case "string":
+            case "float":
+                parseTerminal(this.currentToken().getRepresentation());
+                parseIdentifier(ACCESS);
+                parseDeclaration();
+                break;
+            default:
+                if (this.currentToken().isIdentifier()) {
+                    parseIdentifier(ACCESS);
+                    parseCommandExtension();
+
+                } else {
+                    // erroSintatico("falta um comando: identificador ou palavra reservada");
+                }
+                break;
+
+        }
+    }
+
+    private void recExp() {
+        switch (this.currentToken().getRepresentation()) {
+            case "true":
+                parseTerminal("true");
+                recComplementoLogico();
+                break;
+            case "false":
+                parseTerminal("false");
+                recComplementoLogico();
+                break;
+            case "++":
+                parseTerminal("++");
+                parseIdentifier(ACCESS);
+                recIdExp();
+                recComplementoAritmetico1();
+                break;
+            case "--":
+                parseTerminal("--");
+                parseIdentifier(ACCESS);
+                recIdExp();
+                recComplementoAritmetico1();
+                break;
+            case "(":
+                parseTerminal("(");
+                recExp();
+                parseTerminal(")");
+                break;
+            default:
+                switch (this.currentToken().getType()) {
+                    case identificador:
+                        parseIdentifier(ACCESS);
+                        recIdExpArit();
+                        recComplementoAritmetico1();
+                        break;
+                    case inteiro:
+                    case decimal:
+                        parseTerminal(this.currentToken().getRepresentation());
+                        recComplementoAritmetico();
+                        recOpRelacional();
+                        break;
+                    default:
+//                        // erroSintatico("falta identificador, numero, boolean, (, ou operador: ++, --");
+//                        while(!proximo.getTipo().equals("palavra_reservada") && !this.currentToken().getRepresentation().equals(")") && !this.currentToken().getRepresentation().equals("{") && !this.currentToken().getRepresentation().equals("}")){
+//                            proximo=proximo();
+//                        }
+                        break;
+                }
+
+        }
+    }
+
+    private void recComplementoAritmetico1() {
+        switch (this.currentToken().getRepresentation()) {
+            case "+":
+                parseTerminal("+");
+                recFatorAritmetico();
+                recOpIdRelacional();
+                break;
+            case "-":
+                parseTerminal("-");
+                recFatorAritmetico();
+                recOpIdRelacional();
+                break;
+            case "*":
+                parseTerminal("*");
+                recFatorAritmetico();
+                recOpIdRelacional();
+                break;
+            case "/":
+                parseTerminal("/");
+                recFatorAritmetico();
+                recOpIdRelacional();
+                break;
+            default:
+                recOpIdLogico();
+                break;
+
+        }
+    }
+
+    private void recExpLogica() {
+        switch (this.currentToken().getRepresentation()) {
+            case "true":
+                parseTerminal("true");
+                recComplementoLogico();
+                break;
+            case "false":
+                parseTerminal("false");
+                recComplementoLogico();
+                break;
+            case "++":
+                parseTerminal("++");
+                parseIdentifier(ACCESS);
+                recIdExp();
+                recComplementoAritmetico();
+                recOpIdLogico();
+                break;
+            case "--":
+                parseTerminal("--");
+                parseIdentifier(ACCESS);
+                recIdExp();
+                recComplementoAritmetico();
+                recOpIdLogico();
+                break;
+            case "(":
+                parseTerminal("(");
+                recExpLogica();
+                parseTerminal(")");
+                recComplementoExpLogica();
+                break;
+            default:
+                switch (this.currentToken().getType()) {
+                    case identificador:
+                        parseIdentifier(ACCESS);
+                        recIdExpArit();
+                        recComplementoAritmetico();
+                        recOpIdLogico();
+                        break;
+                    case decimal:
+                    case inteiro:
+                        parseTerminal(this.currentToken().getRepresentation());
+                        recComplementoAritmetico();
+                        recCoOpRelacional();
+                        break;
+                    default:
+//                        // erroSintatico("falta identificador, numero, boolean, (, ou operador: ++, --");
+//                        while(!proximo.getTipo().equals("palavra_reservada") && !this.currentToken().getRepresentation().equals(")") && !this.currentToken().getRepresentation().equals("{") && !this.currentToken().getRepresentation().equals("}")){
+//                            proximo=proximo();
+//                        }
+                        break;
+                }
+
+        }
+    }
+
+    private void recCoOpRelacional() {
+        switch (this.currentToken().getRepresentation()) {
+            case ">":
+                recOpRelacional();
+                break;
+            case "<":
+                recOpRelacional();
+                break;
+            case ">=":
+                recOpRelacional();
+                break;
+            case "<=":
+                recOpRelacional();
+                break;
+            case "==":
+                recOpRelacional();
+                break;
+            case "!=":
+                recOpRelacional();
+                break;
+            case "&&":
+                parseTerminal("&&");
+                recExp();
+                break;
+            case "||":
+                parseTerminal("||");
+                recExp();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void recComplementoExpLogica() {
+        switch (this.currentToken().getRepresentation()) {
+            case ">":
+                parseTerminal(">");
+                recFatorAritmetico();
+                recComplementoLogico();
+                break;
+            case "<":
+                parseTerminal("<");
+                recFatorAritmetico();
+                recComplementoLogico();
+                break;
+            case ">=":
+                parseTerminal(">=");
+                recFatorAritmetico();
+                recComplementoLogico();
+                break;
+            case "<=":
+                parseTerminal("<=");
+                recFatorAritmetico();
+                recComplementoLogico();
+                break;
+            case "==":
+                parseTerminal("==");
+                recExpLogica();
+                break;
+            case "!=":
+                parseTerminal("!=");
+                recExpLogica();
+                break;
+            case "&&":
+                parseTerminal("&&");
+                recExp();
+                break;
+            case "||":
+                parseTerminal("||");
+                recExp();
+                break;
+            case "+":
+                parseTerminal("+");
+                recFatorAritmetico();
+                recComplementoLogico();
+                break;
+            case "-":
+                parseTerminal("-");
+                recFatorAritmetico();
+                recComplementoLogico();
+                break;
+            case "*":
+                parseTerminal("*");
+                recFatorAritmetico();
+                recComplementoLogico();
+                break;
+            case "/":
+                parseTerminal("/");
+                recFatorAritmetico();
+                recComplementoLogico();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void recIdExp() {
+        switch (this.currentToken().getRepresentation()) {
+            case "(":
+                parseTerminal("(");
+                recParametros();
+                parseTerminal(")");
+                break;
+            case ".":
+                parseTerminal(".");
+                parseIdentifier(ACCESS);
+                recChamadaMetodo();
+                break;
+            case "[":
+                parseTerminal("[");
+                parseVectorIndex();
+                parseTerminal("]");
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void recOpIdLogico() {
+        switch (this.currentToken().getRepresentation()) {
+            case ">":
+                recOpIdRelacional();
+                break;
+            case "<":
+                recOpIdRelacional();
+                break;
+            case ">=":
+                recOpIdRelacional();
+                break;
+            case "<=":
+                recOpIdRelacional();
+                break;
+            case "==":
+                recOpIdRelacional();
+                break;
+            case "!=":
+                recOpIdRelacional();
+                break;
+            case "&&":
+                parseTerminal("&&");
+                recExp();
+                break;
+            case "||":
+                parseTerminal("||");
+                recExp();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void recComplementoLogico() {
+        switch (this.currentToken().getRepresentation()) {
+            case "==":
+                parseTerminal("==");
+                recExpLogica();
+                break;
+            case "!=":
+                parseTerminal("!=");
+                recExpLogica();
+                break;
+            case "&&":
+                parseTerminal("&&");
+                recExp();
+                break;
+            case "||":
+                parseTerminal("||");
+                recExp();
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void recOpRelacional() {
+        switch (this.currentToken().getRepresentation()) {
+            case ">":
+                parseTerminal(">");
+                recExpAritmetica();
+                recOpLogico();
+                break;
+            case "<":
+                parseTerminal("<");
+                recExpAritmetica();
+                recOpLogico();
+                break;
+            case ">=":
+                parseTerminal(">=");
+                recExpAritmetica();
+                recOpLogico();
+                break;
+            case "<=":
+                parseTerminal("<=");
+                recExpAritmetica();
+                recOpLogico();
+                break;
+            case "==":
+                parseTerminal("==");
+                recExpAritmetica();
+                recOpLogico();
+                break;
+            case "!=":
+                parseTerminal("!=");
+                recExpAritmetica();
+                recOpLogico();
+                break;
+            default:
+                // erroSintatico("falta operador: >, <, >=, <=, ==, !=");
+                break;
+        }
+    }
+
+    private void recOpIdRelacional() {
+        switch (this.currentToken().getRepresentation()) {
+            case ">":
+                parseTerminal(">");
+                recExpAritmetica();
+                recOpLogico();
+                break;
+            case "<":
+                parseTerminal("<");
+                recExpAritmetica();
+                recOpLogico();
+                break;
+            case ">=":
+                parseTerminal(">=");
+                recExpAritmetica();
+                recOpLogico();
+                break;
+            case "<=":
+                parseTerminal("<=");
+                recExpAritmetica();
+                recOpLogico();
+                break;
+            case "==":
+                parseTerminal("==");
+                recExpLogica();
+                break;
+            case "!=":
+                parseTerminal("!=");
+                recExpLogica();
+                break;
+            default:
+                // erroSintatico("falta operador: >, <, >=, <=, ==, !=");
+                break;
+        }
+    }
+
+    private void recExpAritmetica() {
+        switch (this.currentToken().getRepresentation()) {
+            case "++":
+                recFatorAritmetico();
+                break;
+            case "--":
+                recFatorAritmetico();
+                break;
+            case "-":
+                parseTerminal("-");
+                recExpAritmetica();
+                break;
+            case "(":
+                recFatorAritmetico();
+                break;
+            default:
+                if (this.currentToken().isIdentifier() || this.currentToken().isNumber()) {
+                    recFatorAritmetico();
+                    break;
+                }
+                // erroSintatico("falta identificar, numero, ( ou operador: ++, --, -");
+//                        while(!proximo.getTipo().equals("id") && !proximo.getTipo().equals("palavra_reservada") && !this.currentToken().getRepresentation().equals(")") && !this.currentToken().getRepresentation().equals("{") && !this.currentToken().getRepresentation().equals("}")){
+//                            proximo=proximo();
+//                        }
+                break;
+        }
+
+    }
+
+    private void recFatorAritmetico() {
+        switch (this.currentToken().getRepresentation()) {
+            case "++":
+                recIdAritmetico();
+                recComplementoAritmetico();
+                break;
+            case "--":
+                recIdAritmetico();
+                recComplementoAritmetico();
+                break;
+            case "-":
+                parseTerminal("-");
+                recExpAritmetica();
+                break;
+            case "(":
+                recFatorAritmetico();
+                recComplementoAritmetico();
+                break;
+            default:
+                if (this.currentToken().isIdentifier()) {
+                    recIdAritmetico();
+                    recComplementoAritmetico();
+                    break;
+                } else if (this.currentToken().isNumber()) {
+                    parseTerminal(this.currentToken().getRepresentation());
+                    recComplementoAritmetico();
+                    break;
+                }
+                // erroSintatico("falta numero, identificador, (, ou operador: ++, --, -");
+//                while (!proximo.getTipo().equals("palavra_reservada") && !this.currentToken().getRepresentation().equals(")") && !this.currentToken().getRepresentation().equals("{") && !this.currentToken().getRepresentation().equals("}") && !this.currentToken().getRepresentation().equals(";")) {
+//                    proximo = proximo();
+//                }
+                break;
+        }
+    }
+
+    private void recIdAritmetico() {
+        switch (this.currentToken().getRepresentation()) {
+            case "++":
+            case "--":
+                parseTerminal("--");
+                parseIdentifier(ACCESS);
+                break;
+            default:
+                if (this.currentToken().isIdentifier()) {
+                    parseIdentifier(ACCESS);
+                    recIdExpArit();
+                }
+                // erroSintatico("falta identificador ou operador: ++, --");
+                break;
+        }
+    }
+
+    private void recIdExpArit() {
+        switch (this.currentToken().getRepresentation()) {
+            case "(":
+                recIdExp();
+                break;
+            case ".":
+                recIdExp();
+                break;
+            case "[":
+                recIdExp();
+                break;
+            case "++":
+                parseTerminal("++");
+                break;
+            case "--":
+                parseTerminal("--");
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void recComplementoAritmetico() {
+        switch (this.currentToken().getRepresentation()) {
+            case "+":
+                parseTerminal("+");
+                recFatorAritmetico();
+                break;
+            case "-":
+                parseTerminal("-");
+                recFatorAritmetico();
+                break;
+            case "*":
+                parseTerminal("*");
+                recFatorAritmetico();
+                break;
+            case "/":
+                parseTerminal("/");
+                recFatorAritmetico();
+                break;
+            default:
+                break;
+        }
+    }
+	
+	
+	
+	
+
 	
 	private void addError (String error, int line) {
 		System.out.println("Erro na linha " + line + " " + error);

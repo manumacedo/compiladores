@@ -1,25 +1,14 @@
 
 public class SemanticUnit {
 	
-	
-	private Scope scope;
 	private String identifier;
 	private String type;
 	private SemanticCategory category;
 	
-	public SemanticUnit (Scope scope, String identifier, String type, SemanticCategory category) {
-		this.setScope(scope);
+	public SemanticUnit (String identifier, String type, SemanticCategory category) {
 		this.setIdentifier(identifier);
 		this.setType(type);
 		this.setCategory(category);
-	}
-
-	public Scope getScope() {
-		return scope;
-	}
-
-	public void setScope(Scope scope) {
-		this.scope = scope;
 	}
 
 	public String getType() {
