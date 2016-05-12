@@ -5,20 +5,23 @@ import java.util.TreeMap;
 public class SemanticAnalyzer {
 	
 	private final boolean ACCESS = true;
-	private final boolean DECL = false; 
+	private final boolean DECL = false;
 	
 	private ArrayList<Token> tokens;
 	private Stack<Scope> scopeStack;
 	private int currentTokenIndex;
 	
 	private TreeMap<SemanticUnit, Scope> scopeTree;
-	
+	private SemanticUnit declaringUnit;
+	private ErrorHandler handler;
 	
 	public SemanticAnalyzer (LexIO io) {
 		this.tokens = io.getTokens();
 		this.scopeStack = new Stack<>();
 		this.currentTokenIndex = 0;
 		this.scopeTree = new TreeMap<>();
+		
+		this.handler = new ErrorHandler();
 		
 		this.scopeStack.push(new Scope(new Token(-1, "GLOBAL", null), null));
 	}
@@ -52,14 +55,19 @@ public class SemanticAnalyzer {
 		};
 	}
 	
-	private void parsePrimitiveType() {
+	private String parsePrimitiveType() {
 		// <tipo_primitivo> ::= 'int' | 'char' | 'bool' | 'string' | 'float'
 		Token next = this.nextToken();
+		
+		
 		System.out.println("Parsing primitive " + next.getRepresentation());
+		return next.getRepresentation();
 	}
 	
-	private void parseIdentifier(boolean isAccess){
+	private String parseIdentifier(boolean isAccess){
 		Token next = this.nextToken();
+		
+		
 		if(next.isIdentifier()){
 			System.out.println("Parsing " + next.getRepresentation() + (isAccess ? "  - access" : " - decl"));
 			
@@ -68,11 +76,12 @@ public class SemanticAnalyzer {
 			} else {
 				//this.scopeStack.peek().insertUnit(new SemanticUnit(next.getRepresentation(), currentDeclarationType, currentCategory));
 			}
-			
+			return next.getRepresentation();
 		}
 		else {
 			System.out.println("Wow, deu ruim. Expected Identifier, got " + next.getRepresentation());
 		}
+		return null;
 	}
 	
 	
@@ -81,6 +90,8 @@ public class SemanticAnalyzer {
 		parseConstants();
 		parseVariables();
 		parsePreMain();
+		
+		this.handler.output();
 	}
 	
 	private void parseConstants() {
@@ -103,7 +114,11 @@ public class SemanticAnalyzer {
 	private void parseConstBlock() {
 		// <bloco_constantes> ::= <tipo_primitivo> <lista_const> | <lambda>
 		if(this.currentToken().isPrimitiveType()) {
-			parsePrimitiveType();
+			
+			String type = parsePrimitiveType();
+			
+			this.declaringUnit = new SemanticUnit(null, type, SemanticCategory.constante, this.scopeStack.peek());
+			
 			parseConstantList();
 		}
 		
@@ -111,7 +126,15 @@ public class SemanticAnalyzer {
 	
 	private void parseConstantList() {
 		// <lista_const> ::= Identifier '=' <atribuicao_costante> <aux_declaracao>
-		parseIdentifier(DECL);
+		String id = parseIdentifier(DECL);
+		
+		if(isDeclaredLocally(id)) {
+			handler.add(this.currentToken().getLine(), "Constante já declarada");
+		} else {
+			this.declaringUnit.setIdentifier(id);
+			this.scopeStack.peek().insertUnit(declaringUnit);
+		}
+		
 		parseTerminal("=");
 		parseConstantAssignment();
 		parseConstantListExtension();
@@ -122,6 +145,7 @@ public class SemanticAnalyzer {
 		
 		if(this.currentToken().is(",")) {
 			parseTerminal(",");
+			this.declaringUnit = new SemanticUnit(null, declaringUnit.getType(), SemanticCategory.constante, this.scopeStack.peek());
 			parseConstantList();
 		} else if (this.currentToken().is(";")) {
 			this.parseTerminal(";");
@@ -133,9 +157,14 @@ public class SemanticAnalyzer {
 		// <atribuicao_costante> ::= Numero | Char1 | Cadeia | <boolean>
 		
 		Token next = this.nextToken();
-		if(next.isBool() || next.isChar() || next.isString() || next.isNumber())
+		if(next.isBool() || next.isChar() || next.isString() || next.isNumber()){
 			System.out.println("Parsing primitive assignment " + next.getRepresentation());
-		else 
+		
+			if(!next.hasType(declaringUnit.getType())) {
+				handler.add(this.currentToken().getLine(), "Tipo inválido na atribuição da constante");
+			}
+			
+		} else 
 			System.out.println("Error on assignment, got " + next);
 	}
 	
@@ -143,15 +172,50 @@ public class SemanticAnalyzer {
 		// <variaveis> ::= <declaracao_variavel> <variaveis> | <lambda>
 		
 		if(this.currentToken().isPrimitiveType()) {
+			
+			this.declaringUnit = new SemanticUnit(null, this.currentToken().getRepresentation(), SemanticCategory.variavel, this.scopeStack.peek());
+			
 			parseVariableDeclaration();
 			parseVariables();
 		}
 	}
 	
+	private boolean isDeclared(String id, Scope currentScope, boolean recursive) {
+		if(recursive) {
+			if(currentScope.has(id)) {
+				return true;
+			} else if (currentScope.getParent() != null) {
+				return this.isDeclared(id, currentScope.getParent(), recursive);
+			} else {
+				return false;
+			}
+			
+		} else {
+			return currentScope.has(id);
+		}
+	}
+	
+	private boolean isDeclaredLocally(String id) {
+		return isDeclared(id, this.scopeStack.peek(), false);
+	}
+	
+	private boolean isDeclaredAnywhere(String id) {
+		return isDeclared(id, this.scopeStack.peek(), true);
+	}
+	
 	private void parseVariableDeclaration() {
 		// <declaracao_variavel> ::= <tipo_primitivo> Identifier <lista_variavel>
 		parsePrimitiveType();
-		parseIdentifier(DECL);
+		
+		String id = parseIdentifier(DECL);
+		
+		if(isDeclaredLocally(id)) {
+			handler.add(this.currentToken().getLine(), "Variável já declarada");
+		} else {
+			this.declaringUnit.setIdentifier(id);
+			this.scopeStack.peek().insertUnit(declaringUnit);
+		}		
+
 		parseVariableList();
 	}
 	
@@ -160,7 +224,14 @@ public class SemanticAnalyzer {
 		
 		if(this.currentToken().is(",")) {
 			parseTerminal(",");
-			parseIdentifier(DECL);
+			
+			String id = parseIdentifier(DECL);
+			this.declaringUnit = new SemanticUnit(id, this.declaringUnit.getType(), SemanticCategory.variavel, this.scopeStack.peek());
+			
+			if(isDeclaredLocally(id)) {
+				handler.add(this.currentToken().getLine(), "Erro, variável já declarada");
+			}
+			
 			parseVariableList();
 		} else if(this.currentToken().is(";")) {
 			parseTerminal(";");
@@ -200,7 +271,13 @@ public class SemanticAnalyzer {
 		// <classe> ::= 'class' Identifier <expressao_heranca> '{' <conteudo_classe> '}'
 		
 		parseTerminal("class");
-		parseIdentifier(DECL);
+		String id = parseIdentifier(DECL);
+		this.declaringUnit = new SemanticUnit(id, null, SemanticCategory.classe, this.scopeStack.peek());
+		if(isDeclaredLocally(id)) {
+			handler.add(this.currentToken().getLine(), "Não foi possível declarar classe - Identificador já declarado");
+		}
+		
+		
 		parseInheritance();
 		parseTerminal("{");
 		parseClassContents();

@@ -17,12 +17,20 @@ public class Scope {
 		this.semanticUnitList.add(unit);
 	}
 	
-	public boolean has (Token token) {
+	public boolean has (String id) {
 		for (SemanticUnit s : this.semanticUnitList) {
-			if (token.is(s.getIdentifier())) {
+			if (id.equals(s.getIdentifier())) {
 				return true;
 			}
 		}
 		return false;
+	}
+	
+	public Scope getParent () {
+		return this.parent;
+	}
+	
+	public String toString() {
+		return this.token.getRepresentation() + " <- " + (this.parent == null ? null : this.parent.toString());
 	}
 }

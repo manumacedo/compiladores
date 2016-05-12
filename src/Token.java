@@ -78,6 +78,24 @@ public class Token implements Comparable<Token>{
 		return this.type == TokenType.decimal;
 	}
 	
+	public boolean hasType (String type) {		
+		switch (type) {
+		case "int":
+			return this.isInteger();
+		case "float":
+			return this.isFloat();
+		case "char":
+			return this.isChar();
+		case "string":
+			return this.isString();
+		case "boolean":
+			return this.isBool();
+		default:
+			return this.is(type);
+		}
+	}
+	
+	
 	public boolean isNumber(){
 		return (this.type == TokenType.decimal) || (this.type == TokenType.inteiro);
 	}

@@ -1,14 +1,17 @@
 
-public class SemanticUnit {
+public class SemanticUnit{
 	
 	private String identifier;
 	private String type;
 	private SemanticCategory category;
+	private Scope parent;
 	
-	public SemanticUnit (String identifier, String type, SemanticCategory category) {
+	public SemanticUnit (String identifier, String type, SemanticCategory category, Scope parent)  {
 		this.setIdentifier(identifier);
 		this.setType(type);
 		this.setCategory(category);
+		this.setParent(parent);
+		
 	}
 
 	public String getType() {
@@ -33,6 +36,18 @@ public class SemanticUnit {
 
 	public void setIdentifier(String identifier) {
 		this.identifier = identifier;
+	}
+
+	public Scope getParent() {
+		return parent;
+	}
+
+	public void setParent(Scope parent) {
+		this.parent = parent;
+	}
+	
+	public String toString () {
+		return this.getIdentifier() + " " + this.getType() + " " + this.getCategory();
 	}
 	
 }
