@@ -19,7 +19,7 @@ public class ErrorHandler {
 	}
 	
 	public void add(int line, String message) {
-		this.errorList.add(new Error(line, message));
+		this.errorList.add(new Error(line+1, message));
 	}
 	
 	public void output () {

@@ -2,5 +2,6 @@
 public enum SemanticCategory {
 	variable,
 	constant,
-	vector
+	vector,
+	object
 }

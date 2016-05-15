@@ -17,17 +17,20 @@ public class SemanticAnalyzer {
 	
 	private TreeMap<String, ClassUnit> classes;
 	private TreeMap<String, SemanticUnit> globals;
+	
+	
 	private ClassUnit declaringClassUnit;
+	private ClassUnit currentClass;
+	private MethodUnit currentMethod;
+	private String currentAssignment;
+	private String currentExpressionId;
 	
 	
 	// ------------------------- global tem um map de classes, variaveis e constantes
 	// --------------- cada class tem um map de metodos
 	// --------- cada metodo tem um map de variaveis
 	
-	
-	
-	
-	public SemanticAnalyzer (LexIO io) {
+	public SemanticAnalyzer (LexIO io) {		
 		this.tokens = io.getTokens();
 		this.scopeStack = new Stack<>();
 		this.currentTokenIndex = 0;
@@ -40,6 +43,7 @@ public class SemanticAnalyzer {
 		
 		this.classes = new TreeMap<>();
 		this.globals = new TreeMap<>();
+		
 	}
 	
 	private Token currentToken() {
@@ -132,7 +136,7 @@ public class SemanticAnalyzer {
 		if(this.currentToken().isPrimitiveType()) {
 			
 			String type = parsePrimitiveType();
-			
+		
 			this.declaringUnit = new SemanticUnit(null, type, SemanticCategory.constant, this.scopeStack.peek());
 			
 			parseConstantList();
@@ -143,12 +147,24 @@ public class SemanticAnalyzer {
 	private void parseConstantList() {
 		// <lista_const> ::= Identifier '=' <atribuicao_costante> <aux_declaracao>
 		String id = parseIdentifier(DECL);
-		
-		if(isDeclaredLocally(id)) {
-			handler.add(this.currentToken().getLine(), "Constante já declarada");
+		this.declaringUnit.setIdentifier(id);
+		if(currentClass != null) {
+			
+			if(globals.containsKey(id) && globals.get(id).getCategory() == SemanticCategory.constant ) {
+				handler.add(this.currentToken().getLine(), "Constante global não pode ser sobrescrita - " + id);
+			} else if(currentClass.hasOwnAttribute(id)) {
+				handler.add(this.currentToken().getLine(), "Identificador já declarado - " + id);
+			} else {
+				this.declaringUnit.setIdentifier(id);
+				currentClass.addAttribute(this.declaringUnit);
+				// TODO classes.get(currentClass.getIdentifier())
+			}
+			
+		} else if(this.globals.containsKey(id)) {
+			handler.add(this.currentToken().getLine(), "Identificador já declarado - " + id);
 		} else {
-			this.declaringUnit.setIdentifier(id);
-			this.scopeStack.peek().insertUnit(declaringUnit);
+			//this.scopeStack.peek().insertUnit(declaringUnit);
+			globals.put(id, this.declaringUnit);
 		}
 		
 		parseTerminal("=");
@@ -161,7 +177,9 @@ public class SemanticAnalyzer {
 		
 		if(this.currentToken().is(",")) {
 			parseTerminal(",");
+			
 			this.declaringUnit = new SemanticUnit(null, declaringUnit.getType(), SemanticCategory.constant, this.scopeStack.peek());
+			
 			parseConstantList();
 		} else if (this.currentToken().is(";")) {
 			this.parseTerminal(";");
@@ -177,7 +195,7 @@ public class SemanticAnalyzer {
 			System.out.println("Parsing primitive assignment " + next.getRepresentation());
 		
 			if(!next.hasType(declaringUnit.getType())) {
-				handler.add(this.currentToken().getLine(), "Tipo inválido na atribuição da constante");
+				handler.add(this.currentToken().getLine(), "Tipo inválido na atribuição da constante - " + declaringUnit.getType());
 			}
 			
 		} else 
@@ -186,8 +204,8 @@ public class SemanticAnalyzer {
 	
 	private void parseVariables() {
 		// <variaveis> ::= <declaracao_variavel> <variaveis> | <lambda>
-		
-		if(this.currentToken().isPrimitiveType()) {
+		Token curr = this.currentToken();
+		if(curr.isPrimitiveType()) {
 			
 			this.declaringUnit = new SemanticUnit(null, this.currentToken().getRepresentation(), SemanticCategory.variable, this.scopeStack.peek());
 			
@@ -215,8 +233,41 @@ public class SemanticAnalyzer {
 		return isDeclared(id, this.scopeStack.peek(), false);
 	}
 	
+	private SemanticUnit findIdentifier (String id) {
+		SemanticUnit ret;
+		
+		if(this.currentMethod != null) {
+			ret = this.currentMethod.getUnit(id);
+			if(ret != null)
+				return ret;
+		}
+		
+		if(this.currentClass != null) {
+			ret = this.currentClass.getUnit(id);
+			if(ret != null)
+				return ret;
+		}
+		
+		ret = globals.get(id);
+		if(ret != null)
+			return ret;
+		
+		return null;
+	}
+	
 	private boolean isDeclaredAnywhere(String id) {
-		return isDeclared(id, this.scopeStack.peek(), true);
+		
+		if(this.currentMethod != null) {
+			if(this.currentMethod.hasVariable(id))
+				return true;
+		}
+		
+		if (this.currentClass != null) {
+			if (this.currentClass.hasOwnAttribute(id)  || this.currentClass.hasInheritedAttribute(id))
+				return true;
+		}
+		
+		return this.globals.containsKey(id);
 	}
 	
 	private void parseVariableDeclaration() {
@@ -225,11 +276,13 @@ public class SemanticAnalyzer {
 		
 		String id = parseIdentifier(DECL);
 		
-		if(isDeclaredLocally(id)) {
-			handler.add(this.currentToken().getLine(), "Variável já declarada");
+		if(globals.containsKey(id)) {
+			handler.add(this.currentToken().getLine(), "Identificador já declarado - " + id);
 		} else {
 			this.declaringUnit.setIdentifier(id);
 			this.scopeStack.peek().insertUnit(declaringUnit);
+			
+			this.globals.put(id, declaringUnit);
 		}		
 
 		parseVariableList();
@@ -244,8 +297,12 @@ public class SemanticAnalyzer {
 			String id = parseIdentifier(DECL);
 			this.declaringUnit = new SemanticUnit(id, this.declaringUnit.getType(), SemanticCategory.variable, this.scopeStack.peek());
 			
+			if(classes.containsKey(id)) {
+				handler.add(this.currentToken().getLine(), "Variável tem o mesmo identificador de uma classe - " + id);
+			}
+			
 			if(isDeclaredLocally(id)) {
-				handler.add(this.currentToken().getLine(), "Erro, variável já declarada");
+				handler.add(this.currentToken().getLine(), "Identificador já declarado - " + id);
 			}
 			
 			parseVariableList();
@@ -268,10 +325,13 @@ public class SemanticAnalyzer {
 	
 	private void parseMain() {
 		//	<main> ::= 'void' 'main' '(' ')' '{' <conteudo_metodo> '}'
+		this.currentMethod = new MethodUnit("main");
 		
 		parseTerminals("void", "main", "(", ")", "{");
 		parseMethodContents();
 		parseTerminal("}");
+		
+		this.currentMethod = null;
 	}
 	
 	private void parseClasses () {
@@ -289,25 +349,35 @@ public class SemanticAnalyzer {
 		parseTerminal("class");
 		String id = parseIdentifier(DECL);
 		
+		this.currentClass = new ClassUnit(id);
 		
-		
-		this.declaringClassUnit = new ClassUnit(id);
-		if(isDeclaredLocally(id)) {
-			handler.add(this.currentToken().getLine(), "Não foi possível declarar classe - Identificador já declarado");
+		if(this.classes.containsKey(id) || this.globals.containsKey(id)) {
+			handler.add(this.currentToken().getLine(), "Identificador já declarado - " + id);
+		} else {
+			this.classes.put(id, currentClass);
 		}
-		
 		
 		parseInheritance();
 		parseTerminal("{");
 		parseClassContents();
 		parseTerminal("}");
+		this.currentClass = null;
 	}
 	
 	private void parseInheritance() {
 		// <expressao_heranca> ::= '>' Identifier | <lambda>
 		if(this.currentToken().is(">")){
 			parseTerminal (">");
-			parseIdentifier(ACCESS);
+			String id = parseIdentifier(ACCESS);
+			
+			if(!this.classes.containsKey(id)) {
+				handler.add(this.currentToken().getLine(), "Identificador da herança não declarado - " + id);
+			} else if (id.equals(currentClass.getIdentifier())) {
+				handler.add(this.currentToken().getLine(), "Classe não pode herdar de si mesma");
+			} else {
+				this.currentClass.inheritFrom(this.classes.get(id));
+			}
+			
 		}
 	}
 	
@@ -327,41 +397,101 @@ public class SemanticAnalyzer {
 		// <id_declaracao> ::= <tipo> Identifier <comp_id> | 'void' Identifier '(' <decl_parametros> ')' '{' <conteudo_metodo> '}' 
 	
 		if(this.currentToken().isType()) {
-			parseType();
-			parseIdentifier(DECL);
+			
+			String type = parseType();
+			String id = parseIdentifier(DECL);
+			
+			this.declaringUnit = new SemanticUnit(id, type, null, null);
+			
+			if(classes.containsKey(id)) {
+				handler.add(this.currentToken().getLine(), "Variável tem o mesmo identificador de uma classe - " + id);
+			}
+			
+			if(currentClass.hasOwnAttribute(id)) {
+				handler.add(this.currentToken().getLine(), "Identificador já declarado - " + id);
+			} else if (currentClass.hasInheritedAttribute(id)) {
+				handler.add(this.currentToken().getLine(), "Identificador já declarado pela herança - " + id);
+			}
+			
 			parseIdentifierExtension();
 		} else if (this.currentToken().is("void")) {
 			parseTerminal("void");
-			parseIdentifier(DECL);
+			String id = parseIdentifier(DECL);
+			
+			this.currentMethod = new MethodUnit(id);
+			
+			if(currentClass.hasOwnMethod(id) || currentClass.hasOwnAttribute(id)) {
+				handler.add(this.currentToken().getLine(), "Identificador já declarado - " + id);
+			} else if(currentClass.hasInheritedAttribute(id)) {
+				handler.add(this.currentToken().getLine(), "Identificador já declarado pela herança - " + id);
+			} else if (currentClass.hasInheritedMethod(id)) {
+				
+				if (!this.currentMethod.equalsTo(this.currentClass.getInheritedMethod(id))) {
+					handler.add(this.currentToken().getLine(), "Override inválido, assinaturas dos métodos não conferem");
+				}
+				
+			} else {
+				this.currentClass.addMethod(this.currentMethod);
+			}
+			
 			parseTerminal("(");
 			parseParametersDeclaration();
 			parseTerminals(")", "{");
 			parseMethodContents();
 			parseTerminal("}");
+			this.currentMethod = null;
 		}
 	}
 	
 	private void parseIdentifierExtension () {
 		// <comp_id> ::=  '['<indice>']' <lista_vetor> | '(' <decl_parametros> ')' '{' <conteudo_metodo> 'return' <retorno> '}' | <lista_variavel>
 		
+		String declaringIdentifier = this.declaringUnit.getIdentifier();
+		
 		switch (this.currentToken().getRepresentation()) {
 			case "[":
+				this.declaringUnit.setCategory(SemanticCategory.vector);
+				
+				
+				this.currentClass.addAttribute(this.declaringUnit);
+				
 				parseVectorDeclaration();
 				parseVectorList();
 			break;
 				
 			case "(":
+				
+				this.currentMethod = new MethodUnit(declaringIdentifier);
+				this.currentMethod.setReturnType(this.declaringUnit.getType());
 				parseTerminal("(");
 				parseParametersDeclaration();
+				
+				if(this.currentClass.hasInheritedMethod(declaringIdentifier)) {
+					if (!this.currentMethod.equalsTo(this.currentClass.getInheritedMethod(declaringIdentifier))) {
+						handler.add(this.currentToken().getLine(), "Override inválido, assinaturas dos métodos não conferem");
+					}
+				}  else {
+					this.currentClass.addMethod(this.currentMethod);
+				}
+				
 				parseTerminals(")", "{");
 				parseMethodContents();
 				parseTerminal("return");
 				parseReturn();
 				parseTerminal("}");
+				this.currentMethod = null;
 			break;
 			
 			case ",":
 			case ";":
+				
+				if(classes.containsKey(declaringIdentifier)) {
+					handler.add(this.currentToken().getLine(), "Variável tem o mesmo identificador de uma classe - " + declaringIdentifier);
+				} else if (globals.containsKey(declaringIdentifier) && globals.get(declaringIdentifier).getCategory() == SemanticCategory.constant) {
+					handler.add(this.currentToken().getLine(), "Constante global não pode ser sobrescrita - " + declaringIdentifier);
+				} else {
+					this.currentClass.addAttribute(this.declaringUnit);
+				}
 				parseVariableList();
 			break;
 		}
@@ -371,9 +501,23 @@ public class SemanticAnalyzer {
 	private void parseVectorIndex() {
 		
 		if(this.currentToken().isNumber()) {
+			
+			if(!currentToken().isInteger()) {
+				handler.add(this.currentToken().getLine(), "Tipo inválido para tamanho do vetor - " + currentToken().getRepresentation());
+			}
+			
 			parseTerminal(this.currentToken().getRepresentation());
+			
+			
+			
 		} else if (this.currentToken().isIdentifier()) {
-			parseIdentifier(ACCESS);
+			String id = parseIdentifier(ACCESS);
+			
+			if(!isDeclaredAnywhere(id)) {
+				handler.add(this.currentToken().getLine(), "Identificador não declarado - " + id);
+			} else if (!this.findIdentifier(id).getType().equals("int")){
+				handler.add(this.currentToken().getLine(), "Tipo inválido para tamanho do vetor - " + this.findIdentifier(id).getType());
+			}
 		}
 		
 	}
@@ -383,28 +527,58 @@ public class SemanticAnalyzer {
 		
 		if(this.currentToken().is(",")) {
 			parseTerminal(",");
-			parseIdentifier(DECL);
-			parseVectorDeclaration();
+			
+			// TODO declaring
+			String id = parseIdentifier(DECL);
+			boolean isVector = parseVectorDeclaration();
+			
+			this.declaringUnit = new SemanticUnit(id, this.declaringUnit.getType(), isVector ? SemanticCategory.vector : SemanticCategory.variable, null);
+			
+			if(this.currentMethod != null) { // im on a method
+				if(this.currentMethod.hasVariable(id)) {
+					handler.add(this.currentToken().getLine(), "Identificador já declarado - " + id);
+				} else {
+					this.currentMethod.addVariable(this.declaringUnit);
+				}
+				
+			} else { // im on a class
+				this.currentClass.addAttribute(this.declaringUnit);
+			}
+			
+			
 			parseVectorList();
 		} else if (this.currentToken().is(";")){
 			this.parseTerminal(";");
 		}
 	}
 	
-	private void parseVectorDeclaration() {
+	private boolean parseVectorDeclaration() {
 		if(this.currentToken().is("[")) {
 			parseTerminal("[");
 			parseVectorIndex();
 			parseTerminal("]");
+			
+			return true;
 		}
+		
+		return false;
 	}
 	
-	private void parseType() {
+	private String parseType() {
 		if(this.currentToken().isPrimitiveType()) {
-			parsePrimitiveType();
+			return parsePrimitiveType();
 		} else if (this.currentToken().isIdentifier()) {
-			parseIdentifier(ACCESS);
+			
+			String id = parseIdentifier(ACCESS);
+			
+			if(!classes.containsKey(id)) {
+				handler.add(this.currentToken().getLine(), "Identificador não declarado - " + id);
+			}
+			
+			return id;
 		}
+		
+		return null;
 	}
 	
 	private void parseParametersDeclaration () {
@@ -416,9 +590,25 @@ public class SemanticAnalyzer {
 	}
 	
 	private void parseParameter() {
-		parseType();
-		parseIdentifier(DECL);
-		parseVectorDeclaration();
+		String type = parseType();
+		String id = parseIdentifier(DECL);
+		
+		boolean isVector = parseVectorDeclaration();
+		
+		SemanticUnit parameter = new SemanticUnit(id, type, isVector ? SemanticCategory.vector : SemanticCategory.variable, null);
+		this.currentMethod.addParameter(parameter);
+		
+		SemanticUnit globalConst = this.globals.get(parameter.getIdentifier());
+		SemanticUnit localConst = this.currentClass.getUnit(parameter.getIdentifier());
+		
+		
+		if ((globalConst != null) || (localConst != null)){
+			
+			handler.add(this.currentToken().getLine(), "Parâmetros não podem ter o mesmo nome que constantes - " + parameter.getIdentifier());
+		}
+		
+		this.currentMethod.addVariable(parameter);
+		
 		parseParametersList();
 	}
 	
@@ -439,11 +629,13 @@ public class SemanticAnalyzer {
 	}
 	
 	private void parseReturn() {
+		String returnType = parseAssignment();
+		if(returnType == null) {
+			//handler.add(this.currentToken().getLine(), "Tipo de retorno inválido - " + returnType);
+		} else if(!this.currentMethod.getReturnType().equals(returnType)) {
+			handler.add(this.currentToken().getLine(), "Tipo de retorno inválido - " + returnType);
+		}
 		
-		
-		
-		
-		parseAssignment();
 		parseTerminal(";");
 	}
 	
@@ -456,31 +648,46 @@ public class SemanticAnalyzer {
 		} else if (this.currentToken().isType() && this.lookAhead().isIdentifier()) {
 			// <tipo> Identifier <id_decl>
 			
-			parseType();
-			parseIdentifier(DECL);
-			parseVectorDeclaration();  // TODO vector list != var list (or is it?)
+			String type = parseType();
+			String id = parseIdentifier(DECL);
+
+			boolean isVector = parseVectorDeclaration();  // TODO vector list != var list (or is it?)
+			
+			this.declaringUnit = new SemanticUnit(id, type, isVector ? SemanticCategory.vector : SemanticCategory.variable, null);
+			
+			if(this.currentMethod.hasVariable(id)) {
+				handler.add(this.currentToken().getLine(), "Identificador já declarado - " + id);
+			} else if (globals.containsKey(id) && globals.get(id).getCategory() == SemanticCategory.constant) {
+				handler.add(this.currentToken().getLine(), "Constante global não pode ser sobrescrita - " + id);
+			} else {
+				this.currentMethod.addVariable(this.declaringUnit);
+			}
+			
 			parseVectorList();
 		} else if (this.currentToken().isIdentifier()) {
 			// Identifier <id_comando>
 			
-			parseIdentifier(ACCESS);
+			String id = parseIdentifier(ACCESS);
+			this.currentAssignment = id;
 			parseCommandExtension();
 		} else if (this.currentToken().is("if")) {
-			
 			recIf();
 			
 		} else if (this.currentToken().is("while")) {
 			
 			recWhile();
-			
 		}
 		
 	}
-	
-	
+
 	private void parseCommandExtension() {
 		//<id_comando> ::= '(' <parametros> ')' ';' | '.' Identifier <acesso_objeto> ';' | '=' <atribuicao> ';' | '[' <indice> ']' '=' <atribuicao> ';'
-	
+		
+		SemanticUnit unit = this.findIdentifier(this.currentAssignment);
+		if(unit == null) {
+			handler.add(this.currentToken().getLine(), "Identificador não declarado - " + this.currentAssignment);
+		}
+		
 		switch (this.currentToken().getRepresentation()) {
 			case "(":
 				parseTerminal("(");
@@ -495,8 +702,16 @@ public class SemanticAnalyzer {
 			break;
 			
 			case "=":
+				if(unit != null && unit.getCategory() == SemanticCategory.constant) {
+					handler.add(this.currentToken().getLine(), "Constante não pode ser atribuída - " + unit.getIdentifier());
+				}
 				parseTerminal("=");
-				parseAssignment();
+				String type = parseAssignment();
+				
+				if (unit != null && (unit.getCategory() != SemanticCategory.constant) && !unit.getType().equals(type)) {
+					handler.add(this.currentToken().getLine(), "Tipo inválido na atribuição - " + type);
+				}
+				
 			break;
 			
 			case "[":
@@ -521,60 +736,75 @@ public class SemanticAnalyzer {
 		}
 	}
 	
-	private void parseAssignment() {
+	//  (((( ++a )))) + 
+	
+	private String parseAssignment() {
 		switch (this.currentToken().getRepresentation()) {
         case "(":
             parseTerminal("(");
-            parseAssignment();
+            this.currentAssignment = parseAssignment();
             parseTerminal(")");
             parseOperator();
-            break;
+            return this.currentAssignment;
         case "++":
         case "--":
-            parseIdentifierAccess();
-            break;
+            return parseIdentifierAccess();
         case "true":
         case "false":
             recOpLogico();
-            break;
+            return "bool";
         case "-":
             parseTerminal("-");
-            recNegativo();
-            break;
+            return recNegativo();
         default:
             if(this.currentToken().isIdentifier()) {
-            	parseIdentifierAccess();
+            	return parseIdentifierAccess();
             } else if (this.currentToken().isNumber()) {
-            	parseTerminal(this.currentToken().getRepresentation());
+            	
+            	if(this.currentToken().isFloat())
+            		this.currentAssignment = "float";
+            	else
+            		this.currentAssignment = "int";
+            	
+            	parseTerminal(this.currentToken().getRepresentation());            	
             	recOperadorNumero();
-            } else if (this.currentToken().isChar() || this.currentToken().isString()) {
+            	return this.currentAssignment;
+            } else if (this.currentToken().isChar()) {
             	parseTerminal(this.currentToken().getRepresentation());
-            }
+            	return "char";
+			} else if ( this.currentToken().isString()) {
+				parseTerminal(this.currentToken().getRepresentation());
+            	parseTerminal(this.currentToken().getRepresentation());
+            	return "string";
+			}
         }
+		return null;
     }
 	
-	private void recNegativo() {
+	private String recNegativo() {
+		String ret;
         switch (this.currentToken().getRepresentation()) {
             case "(":
                 parseTerminal("(");
-                recNegativo();
+                ret = recNegativo();
                 parseTerminal(")");
-                break;
+                return ret;
             case "++":
             case "--":
-                parseIdentifierAccess();
-                break;
+                return parseIdentifierAccess();
             default:
             	if(this.currentToken().isNumber()){
                     parseTerminal(this.currentToken().getRepresentation());
-                    recOperadorNumero();
+                    return recOperadorNumero();
             	} else if (this.currentToken().isIdentifier())  {
-            		parseIdentifierAccess();
+            		return parseIdentifierAccess();
             	}
         }
+        
+        return null;
     }
 	
-	private void recOperadorNumero() {
+	private String recOperadorNumero() {
         switch (this.currentToken().getRepresentation()) {
             case ">":
             case "<":
@@ -583,24 +813,26 @@ public class SemanticAnalyzer {
                 parseTerminal(this.currentToken().getRepresentation());
                 recExpAritmetica();
                 recOpLogico();
-                break;
+                return "bool";
             case "+":
             case "-":
             case "*":
             case "/":
             	parseTerminal(this.currentToken().getRepresentation());
-                recExpAritmetica();
+                String ret = recExpAritmetica();
                 recExpRelacionalOpcional();
-                break;
+                return ret;
             case "==":
             case "!=":
             	parseTerminal(this.currentToken().getRepresentation());
                 recExpAritmetica();
                 recOpLogico();
-                break;
+                return "bool";
             default:
                 break;
         }
+        
+        return null;
     }
 	
 	private void parseParameters() {
@@ -609,7 +841,7 @@ public class SemanticAnalyzer {
 		}
 	}
 	
-	private void recExpRelacionalOpcional() {
+	private String recExpRelacionalOpcional() {
         switch (this.currentToken().getRepresentation()) {
             case ">":
             case "<":
@@ -618,32 +850,36 @@ public class SemanticAnalyzer {
             	parseTerminal(this.currentToken().getRepresentation());
                 recExpAritmetica();
                 recOpLogico();
-                break;
+                return "bool";
             default:
-                break;
+                return null;
         }
     }
 	
-	private void parseOperator() { 
+	private String parseOperator() { 
 		if(this.currentToken().isRelationalOperator()) {
 			// <operador_relacional> <exp_aritmetica><op_logico>
 			recOpRelacional();
 			recExpAritmetica();
 			recOpLogico();
+			return "bool";
 		} else if (this.currentToken().isArithmeticOperator()) {
 			//<operador_aritmetico><exp_aritmetica><exp_relacional_opcional>
 			parseArithmeticOperator();
 			recExpAritmetica();
-			
+			return recExpRelacionalOpcional();
 		} else if (this.currentToken().isEqualityOperator()) {
 			// <operador_igualdade><atribuicao>
 			parseEqualityOperator();
-			parseAssignment();
+			return parseAssignment();
 		} else if (this.currentToken().isLogicalOperator()) {
 			// <operador_logico><exp>
 			recOpLogico();
 			recExp();
+			return "bool";
 		}
+		
+		return null;
 		
 	}
 	
@@ -678,25 +914,39 @@ public class SemanticAnalyzer {
         }
     }
 	
-	private void parseIdentifierAccess() {
-        switch (this.currentToken().getRepresentation()) {
+	private String parseIdentifierAccess() {
+		String id;
+		
+		switch (this.currentToken().getRepresentation()) {
             case "++":
-                parseTerminal("++");
-                parseIdentifier(ACCESS);
-                recOperacao();
-                break;
             case "--":
-                parseTerminal("--");
-                parseIdentifier(ACCESS);
-                recOperacao();
-                break;
+                parseTerminal(this.currentToken().getRepresentation());
+                id = parseIdentifier(ACCESS);
+                if(!this.currentMethod.hasVariable(id)) {
+                	handler.add(this.currentToken().getLine(), "Identificador não declarado - " + id);
+                	return null;
+                }
+                
+                if(!this.currentMethod.getUnit(id).getType().equals("int")) {
+                	handler.add(this.currentToken().getLine(), "Incremento inválido, variável não é um inteiro - " + id);
+                }
+                
+                return recOperacao();
             default:
                 if(this.currentToken().isIdentifier()) {
-                	parseIdentifier(ACCESS);
+                	id = parseIdentifier(ACCESS);
                     recAcesso();
                     recOperacao();
+                    
+                    SemanticUnit unit = findIdentifier(id);
+                    if(unit != null)
+                    	return unit.getType();
+                    else
+                    	handler.add(this.currentToken().getLine(), "Identificador não declarado - " + id);
                 }
         }
+		
+		return null;
     }
 
     private void recAcesso() {
@@ -727,23 +977,26 @@ public class SemanticAnalyzer {
         }
     }
 
-    private void recOperacao() {
+    private String recOperacao() {
         switch (this.currentToken().getRepresentation()) {
             case ">":
             case "<":
             case ">=":
             case "<=":
-            case "+":
-            case "-":
-            case "*":
-            case "/":
             case "==":
             case "!=":
             case "&&":
             case "||":
-                parseOperator();
-                break;
+            	parseOperator();
+            	return "bool";
+            case "+":
+            case "-":
+            case "*":
+            case "/":
+            	return parseOperator();
         }
+        
+        return null;
     }
 
     private void recChamadaMetodo() {
@@ -815,7 +1068,11 @@ public class SemanticAnalyzer {
 
     private void recInicializaObjeto() {
         parseTerminal("new");
-        parseIdentifier(ACCESS);
+        String id = parseIdentifier(ACCESS);
+        if(!isDeclaredAnywhere(id)) {
+        	handler.add(this.currentToken().getLine(), "Identificador não declarado - " + id);
+        }
+        
         parseTerminal(";");
     }
 
@@ -929,7 +1186,9 @@ public class SemanticAnalyzer {
     private void recIf() {
         parseTerminal("if");
         parseTerminal("(");
-        recExp();
+        String type = recExp();
+        
+        
         parseTerminal(")");
         parseTerminal("{");
         recConteudoEstrutura();
@@ -975,60 +1234,51 @@ public class SemanticAnalyzer {
             case "while":
                 recWhile();
                 break;
-            case "char":
-            case "int":
-            case "bool":
-            case "string":
-            case "float":
-                parseTerminal(this.currentToken().getRepresentation());
-                parseIdentifier(ACCESS);
-                parseDeclaration();
-                break;
             default:
                 if (this.currentToken().isIdentifier()) {
-                    parseIdentifier(ACCESS);
+                    String id = parseIdentifier(ACCESS);
+                    this.currentAssignment = id;
                     parseCommandExtension();
 
-                } else {
-                    // erroSintatico("falta um comando: identificador ou palavra reservada");
                 }
                 break;
 
         }
     }
 
-    private void recExp() {
+    private String recExp() {
+    	
+    	String type = null;
+    	
         switch (this.currentToken().getRepresentation()) {
             case "true":
                 parseTerminal("true");
-                recComplementoLogico();
-                break;
+                return recComplementoLogico();
             case "false":
                 parseTerminal("false");
-                recComplementoLogico();
-                break;
+                return recComplementoLogico();
             case "++":
                 parseTerminal("++");
                 parseIdentifier(ACCESS);
-                recIdExp();
+                type = recIdExp();
                 recComplementoAritmetico1();
                 break;
             case "--":
                 parseTerminal("--");
                 parseIdentifier(ACCESS);
-                recIdExp();
+                type = recIdExp();
                 recComplementoAritmetico1();
                 break;
             case "(":
                 parseTerminal("(");
-                recExp();
+                type = recExp();
                 parseTerminal(")");
                 break;
             default:
                 switch (this.currentToken().getType()) {
                     case identificador:
-                        parseIdentifier(ACCESS);
-                        recIdExpArit();
+                        this.currentExpressionId = parseIdentifier(ACCESS);
+                        type = recIdExpArit();
                         recComplementoAritmetico1();
                         break;
                     case inteiro:
@@ -1038,14 +1288,12 @@ public class SemanticAnalyzer {
                         recOpRelacional();
                         break;
                     default:
-//                        // erroSintatico("falta identificador, numero, boolean, (, ou operador: ++, --");
-//                        while(!proximo.getTipo().equals("palavra_reservada") && !this.currentToken().getRepresentation().equals(")") && !this.currentToken().getRepresentation().equals("{") && !this.currentToken().getRepresentation().equals("}")){
-//                            proximo=proximo();
-//                        }
                         break;
                 }
 
         }
+        
+        return type;
     }
 
     private void recComplementoAritmetico1() {
@@ -1077,27 +1325,52 @@ public class SemanticAnalyzer {
         }
     }
 
-    private void recExpLogica() {
+    private String recExpLogica() {
+    	
+    	String type = null;
+    	String id;
+    	 
         switch (this.currentToken().getRepresentation()) {
             case "true":
                 parseTerminal("true");
-                recComplementoLogico();
-                break;
+                return recComplementoLogico();
             case "false":
                 parseTerminal("false");
-                recComplementoLogico();
-                break;
+                return recComplementoLogico();
             case "++":
                 parseTerminal("++");
-                parseIdentifier(ACCESS);
-                recIdExp();
+                
+                id = parseIdentifier(ACCESS);
+                if(findIdentifier(id) == null) {
+                	handler.add(this.currentToken().getLine(), "Identificador não declarado - " + id);
+                } else if (findIdentifier(id).getCategory() == SemanticCategory.constant) {
+                	handler.add(this.currentToken().getLine(), "Constantes não podem ser incrementadas - " + id);
+                } else if (findIdentifier(id).getCategory() == SemanticCategory.vector) {
+                	handler.add(this.currentToken().getLine(), "Vetores não podem ser incrementados - " + id);
+                } else if (!findIdentifier(id).getType().equals("int")) {
+                	handler.add(this.currentToken().getLine(), "Somente inteiros podem ser incrementados - " + id);
+                }
+                
+                type = recIdExp();
                 recComplementoAritmetico();
                 recOpIdLogico();
                 break;
             case "--":
                 parseTerminal("--");
-                parseIdentifier(ACCESS);
-                recIdExp();
+                id = parseIdentifier(ACCESS);
+                
+                if(findIdentifier(id) == null) {
+                	handler.add(this.currentToken().getLine(), "Identificador não declarado - " + id);
+                } else if (findIdentifier(id).getCategory() == SemanticCategory.constant) {
+                	handler.add(this.currentToken().getLine(), "Constantes não podem ser incrementadas - " + id);
+                } else if (findIdentifier(id).getCategory() == SemanticCategory.vector) {
+                	handler.add(this.currentToken().getLine(), "Vetores não podem ser incrementados - " + id);
+                } else if (!findIdentifier(id).getType().equals("int")) {
+                	handler.add(this.currentToken().getLine(), "Somente inteiros podem ser incrementados - " + id);
+                }
+                
+                
+                type = recIdExp();
                 recComplementoAritmetico();
                 recOpIdLogico();
                 break;
@@ -1110,9 +1383,11 @@ public class SemanticAnalyzer {
             default:
                 switch (this.currentToken().getType()) {
                     case identificador:
-                        parseIdentifier(ACCESS);
-                        recIdExpArit();
-                        recComplementoAritmetico();
+                        this.currentExpressionId = parseIdentifier(ACCESS);
+                        type = recIdExpArit();
+                        if(!type.equals(recComplementoAritmetico())) {
+                        	handler.add(this.currentToken().getLine(), "Tipos inválidos na expressão - " + type);
+                        }
                         recOpIdLogico();
                         break;
                     case decimal:
@@ -1122,14 +1397,12 @@ public class SemanticAnalyzer {
                         recCoOpRelacional();
                         break;
                     default:
-//                        // erroSintatico("falta identificador, numero, boolean, (, ou operador: ++, --");
-//                        while(!proximo.getTipo().equals("palavra_reservada") && !this.currentToken().getRepresentation().equals(")") && !this.currentToken().getRepresentation().equals("{") && !this.currentToken().getRepresentation().equals("}")){
-//                            proximo=proximo();
-//                        }
                         break;
                 }
 
         }
+        
+        return type;
     }
 
     private void recCoOpRelacional() {
@@ -1228,13 +1501,14 @@ public class SemanticAnalyzer {
         }
     }
 
-    private void recIdExp() {
+    private String recIdExp() {
+    	String ret;
+
         switch (this.currentToken().getRepresentation()) {
-            case "(":
+        	case "(":
                 parseTerminal("(");
                 recParametros();
                 parseTerminal(")");
-                break;
             case ".":
                 parseTerminal(".");
                 parseIdentifier(ACCESS);
@@ -1248,6 +1522,8 @@ public class SemanticAnalyzer {
             default:
                 break;
         }
+        
+        return null;
     }
 
     private void recOpIdLogico() {
@@ -1283,7 +1559,7 @@ public class SemanticAnalyzer {
         }
     }
 
-    private void recComplementoLogico() {
+    private String recComplementoLogico() {
         switch (this.currentToken().getRepresentation()) {
             case "==":
                 parseTerminal("==");
@@ -1304,175 +1580,153 @@ public class SemanticAnalyzer {
             default:
                 break;
         }
+        return "bool";
     }
 
-    private void recOpRelacional() {
+    private String recOpRelacional() {
+    	
+    	String type = null;
+    	
         switch (this.currentToken().getRepresentation()) {
             case ">":
-                parseTerminal(">");
-                recExpAritmetica();
-                recOpLogico();
-                break;
             case "<":
-                parseTerminal("<");
-                recExpAritmetica();
-                recOpLogico();
-                break;
             case ">=":
-                parseTerminal(">=");
-                recExpAritmetica();
-                recOpLogico();
-                break;
             case "<=":
-                parseTerminal("<=");
-                recExpAritmetica();
-                recOpLogico();
-                break;
             case "==":
-                parseTerminal("==");
-                recExpAritmetica();
-                recOpLogico();
-                break;
             case "!=":
-                parseTerminal("!=");
-                recExpAritmetica();
+                parseTerminal(this.currentToken().getRepresentation());
+                type = recExpAritmetica();
                 recOpLogico();
                 break;
             default:
                 // erroSintatico("falta operador: >, <, >=, <=, ==, !=");
                 break;
         }
+        
+        return type;
     }
 
-    private void recOpIdRelacional() {
+    private String recOpIdRelacional() {
+    	
+    	String type = null;
+    	
         switch (this.currentToken().getRepresentation()) {
             case ">":
-                parseTerminal(">");
-                recExpAritmetica();
-                recOpLogico();
-                break;
             case "<":
-                parseTerminal("<");
-                recExpAritmetica();
-                recOpLogico();
-                break;
             case ">=":
-                parseTerminal(">=");
-                recExpAritmetica();
-                recOpLogico();
-                break;
             case "<=":
                 parseTerminal("<=");
-                recExpAritmetica();
+                type = recExpAritmetica();
                 recOpLogico();
                 break;
             case "==":
-                parseTerminal("==");
-                recExpLogica();
-                break;
             case "!=":
-                parseTerminal("!=");
-                recExpLogica();
+                parseTerminal(this.currentToken().getRepresentation());
+                type = recExpLogica();
                 break;
             default:
                 // erroSintatico("falta operador: >, <, >=, <=, ==, !=");
                 break;
         }
+        
+        return type;
     }
 
-    private void recExpAritmetica() {
+    private String recExpAritmetica() {
         switch (this.currentToken().getRepresentation()) {
             case "++":
-                recFatorAritmetico();
-                break;
             case "--":
-                recFatorAritmetico();
-                break;
+            case "(":
+                return recFatorAritmetico();
             case "-":
                 parseTerminal("-");
-                recExpAritmetica();
-                break;
-            case "(":
-                recFatorAritmetico();
-                break;
+                return recExpAritmetica();
             default:
                 if (this.currentToken().isIdentifier() || this.currentToken().isNumber()) {
-                    recFatorAritmetico();
-                    break;
+                    return recFatorAritmetico();
                 }
-                // erroSintatico("falta identificar, numero, ( ou operador: ++, --, -");
-//                        while(!proximo.getTipo().equals("id") && !proximo.getTipo().equals("palavra_reservada") && !this.currentToken().getRepresentation().equals(")") && !this.currentToken().getRepresentation().equals("{") && !this.currentToken().getRepresentation().equals("}")){
-//                            proximo=proximo();
-//                        }
-                break;
         }
-
+        return null;
     }
 
-    private void recFatorAritmetico() {
+    private String recFatorAritmetico() {
         switch (this.currentToken().getRepresentation()) {
             case "++":
-                recIdAritmetico();
-                recComplementoAritmetico();
-                break;
             case "--":
                 recIdAritmetico();
-                recComplementoAritmetico();
-                break;
+                return recComplementoAritmetico();
             case "-":
                 parseTerminal("-");
-                recExpAritmetica();
-                break;
+                return recExpAritmetica();
             case "(":
                 recFatorAritmetico();
-                recComplementoAritmetico();
-                break;
+                return recComplementoAritmetico();
             default:
                 if (this.currentToken().isIdentifier()) {
                     recIdAritmetico();
-                    recComplementoAritmetico();
-                    break;
+                    return recComplementoAritmetico();
                 } else if (this.currentToken().isNumber()) {
                     parseTerminal(this.currentToken().getRepresentation());
-                    recComplementoAritmetico();
-                    break;
+                    return recComplementoAritmetico();
                 }
-                // erroSintatico("falta numero, identificador, (, ou operador: ++, --, -");
-//                while (!proximo.getTipo().equals("palavra_reservada") && !this.currentToken().getRepresentation().equals(")") && !this.currentToken().getRepresentation().equals("{") && !this.currentToken().getRepresentation().equals("}") && !this.currentToken().getRepresentation().equals(";")) {
-//                    proximo = proximo();
-//                }
                 break;
         }
+        
+        return null;
     }
 
-    private void recIdAritmetico() {
-        switch (this.currentToken().getRepresentation()) {
+    private String recIdAritmetico() {
+        
+    	String id;
+    	
+    	switch (this.currentToken().getRepresentation()) {
             case "++":
             case "--":
-                parseTerminal("--");
-                parseIdentifier(ACCESS);
-                break;
+                parseTerminal(this.currentToken().getRepresentation());
+                
+                id = parseIdentifier(ACCESS);
+                
+                if(!currentMethod.getUnit(id).getType().equals("int")) {
+                	handler.add(this.currentToken().getLine(), "Incremento inválido, variável não é um inteiro - " + id);                	
+                }
+                return this.currentMethod.getUnit(id).getType();
             default:
                 if (this.currentToken().isIdentifier()) {
-                    parseIdentifier(ACCESS);
-                    recIdExpArit();
+                    id = parseIdentifier(ACCESS);
+                    
+                    return recIdExpArit();
                 }
-                // erroSintatico("falta identificador ou operador: ++, --");
-                break;
         }
+    	
+    	return null;
     }
 
-    private void recIdExpArit() {
+    private String recIdExpArit() {
         switch (this.currentToken().getRepresentation()) {
             case "(":
-                recIdExp();
-                break;
+            	if(!this.currentClass.hasOwnMethod(this.currentExpressionId) &&
+            	   !this.currentClass.hasInheritedMethod(this.currentExpressionId)) {
+            		handler.add(this.currentToken().getLine(), "Método não definido");
+            	}
+
+                return recIdExp();
             case ".":
-                recIdExp();
-                break;
+            	
+            	if(!this.currentClass.hasOwnAttribute(this.currentExpressionId) &&
+             	   !this.currentClass.hasInheritedAttribute(this.currentExpressionId)) {
+             			handler.add(this.currentToken().getLine(), "Atributo não definido");
+             	}
+            
+                return recIdExp();
             case "[":
-                recIdExp();
-                break;
+            	
+            	if(!this.currentMethod.hasVariable(this.currentExpressionId) &&
+            	   !(this.currentMethod.getUnit(this.currentExpressionId).getCategory() == SemanticCategory.vector)) {
+            		
+            		handler.add(this.currentToken().getLine(), "O identificador acessado não é um vetor");
+              	}
+            	
+                return recIdExp();
             case "++":
                 parseTerminal("++");
                 break;
@@ -1482,36 +1736,25 @@ public class SemanticAnalyzer {
             default:
                 break;
         }
+        
+        return null;
     }
 
-    private void recComplementoAritmetico() {
+    private String recComplementoAritmetico() {
         switch (this.currentToken().getRepresentation()) {
             case "+":
-                parseTerminal("+");
-                recFatorAritmetico();
-                break;
             case "-":
-                parseTerminal("-");
-                recFatorAritmetico();
-                break;
             case "*":
-                parseTerminal("*");
-                recFatorAritmetico();
-                break;
             case "/":
-                parseTerminal("/");
-                recFatorAritmetico();
-                break;
+                parseTerminal(this.currentToken().getRepresentation());
+                return recFatorAritmetico();
             default:
                 break;
         }
+        
+        return null;
     }
-	
-	
-	
-	
 
-	
 	private void addError (String error, int line) {
 		System.out.println("Erro na linha " + line + " " + error);
 	}

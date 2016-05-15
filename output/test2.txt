@@ -1,0 +1,38 @@
+4 tipos incompatives
+4 identificador ja declarado
+8 identificador ja declarado
+11 identificador ja declarado
+16 uma classe so pode herdar de outra classe
+20 identificador ja declarado
+21 indice do vetor deve ser inteiro
+22 indice do vetor deve ser inteiro
+23 variavel do indice nao declarada
+25 constante nao pode ser alterada
+26 constante nao pode ser alterada
+27 tipos incompatives
+27 constante nao pode ser alterada
+29 constante nao pode ser alterada
+35 uma classe nao pode herdar dela mesma
+38 uma classe so pode herdar de outra declarada anteriormente
+41 identificador ja declarado
+44 identificador ja declarado
+46 tipos incompatives, nao pode converter int para float
+46 constante nao pode ser alterada
+48 constante nao pode ser alterada
+49 constante nao pode ser alterada
+56 constante nao pode ser alterada
+57 constante nao pode ser alterada
+59 este identificador nao eh uma variavel
+64 este identificador nao eh uma variavel
+69 constante nao pode ser alterada
+73 atribuicao invalida, tipos incompativeis
+74 tipo de retorno incompativel
+80 tipo de retorno incompativel
+84 identificador ja declarado
+85 constante nao pode ser alterada
+86 tipo de retorno incompativel
+89 identificador ja declarado
+89 identificador ja declarado
+93 identificador ja declarado
+93 identificador ja declarado
+94 identificador ja declarado

@@ -1,0 +1,48 @@
+const {
+	int a = 10, b = 2;
+	float c = 10.1;
+	char d = 'a';
+	string e = "a";
+	bool f = true;
+}
+
+int a1;
+float c1;
+char d1;
+string e1;
+bool f1;
+
+int a; // id ja declarado
+
+class First {
+	const {
+		int b = 10;
+	}
+	
+	int a;
+	
+	bool a () {
+	  return a;
+	}
+
+}
+
+class Second > First {
+ int a[1.3], b[5], c[f1], d[a1];
+ 
+ void a () {
+ 	c3 = 30;
+ }
+ 
+}
+
+class Third > Second {
+ int First (int n, int m, int o) {
+ 	return 0;
+ }
+
+}
+
+void main () {
+
+}

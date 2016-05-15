@@ -88,7 +88,7 @@ public class Token implements Comparable<Token>{
 			return this.isChar();
 		case "string":
 			return this.isString();
-		case "boolean":
+		case "bool":
 			return this.isBool();
 		default:
 			return this.is(type);

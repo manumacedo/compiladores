@@ -2,8 +2,6 @@ import java.util.ArrayList;
 import java.util.TreeMap;
 
 public class MethodUnit {
-	
-	private TreeMap<String, SemanticUnit> constants;
 	private TreeMap<String, SemanticUnit> variables;
 	private ArrayList<SemanticUnit> parameters;
 	
@@ -12,10 +10,24 @@ public class MethodUnit {
 	
 	public MethodUnit(String identifier) {
 		this.parameters = new ArrayList<>();
-		this.constants = new TreeMap<>();
 		this.variables = new TreeMap<>();
 		
 		this.setIdentifier(identifier);
+	}
+	
+	public SemanticUnit getUnit (String identifier) {
+		if (this.hasVariable(identifier))
+			return this.variables.get(identifier);
+		
+		return null;
+	}
+	
+	public void addVariable (SemanticUnit variable) {
+		this.variables.put(variable.getIdentifier(), variable);
+	}
+	
+	public boolean hasVariable (String id) {
+		return this.variables.containsKey(id);
 	}
 	
 	public void addParameter (SemanticUnit parameter) {
@@ -23,7 +35,18 @@ public class MethodUnit {
 	}
 	
 	public boolean equalsTo(MethodUnit anotherMethod) {
+
+		/*
+		 * Retorno diferente = false
+		 * Quantidade de parametros diferente = false
+		 * Tipo dos parametros diferente = false
+		 * 
+		 */
+		
 		if(!this.returnType.equals(anotherMethod.returnType))
+			return false;
+		
+		if(this.parameters.size() != anotherMethod.parameters.size())
 			return false;
 		
 		for (int i = 0; i < parameters.size(); i++)
@@ -39,6 +62,15 @@ public class MethodUnit {
 
 	public void setIdentifier(String identifier) {
 		this.identifier = identifier;
+	}
+	
+	public String getReturnType () {
+		return this.returnType;
+	}
+
+	public void setReturnType(String type) {
+		this.returnType = type;
+		
 	}
 	
 }

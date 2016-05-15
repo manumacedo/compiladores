@@ -1,0 +1,103 @@
+const {
+int a =2;
+char b ='a';
+char a=5;
+int abcd=0;
+}
+const{
+int a=2;
+}
+
+int b;
+int c;
+char d;
+float e;
+string a1;
+class abb > a1{
+
+}
+class dad{
+float ddd, dad;
+int vet2[10.0];
+int vet[ddd];
+int vetor [nao]; 
+const {
+int a =2;
+char b ='a';
+char a=5;
+}
+ int abcd;
+}
+
+class son > dad{
+
+}
+class aaa > aaa{
+
+}
+class aaaa > aba{
+
+}
+class a{
+
+}
+class aaa {
+const {
+int a=10.10;
+}
+int a;
+int b;
+
+}
+
+
+
+void main() {
+int a;
+float a;
+if(a==2+2+2*2&&true){
+a =10;
+} else {
+
+
+e = 10.10;
+a=2;
+}
+}
+
+class folha{
+ float isGreen(int a, int bbbb) {
+
+folha dad2, dad3;
+dad2 = dad3;
+dad2=a;
+        return bbb2;
+    }
+    int batata(int maca, int uva){
+        return maca;
+    }
+    float isFruta(int banana, int beteraba) {
+        return banana;
+    }
+}
+class capim > folha {
+    float isGreen(int a222, int b12222) {
+        int abcd;
+        
+        if (a && b) {
+        	
+        }
+        
+        return b;
+    }
+
+    int batata(int maca, float uva){
+        return maca;
+    }
+
+    int isFruta(int banana, int beteraba) {
+        int banana;
+        return banana;
+    }
+
+}
