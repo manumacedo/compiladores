@@ -2,8 +2,6 @@
 # http://git-scm.com/docs/gitignore
 
 bin/
-input/
-output/
 *.log
 *.lock
 .metadata/.mylyn/.taskListIndex/segments.gen

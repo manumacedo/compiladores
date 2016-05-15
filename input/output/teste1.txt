@@ -1,0 +1,8 @@
+5 variável já declarada
+11 identificador já declarado
+14 identificador já declarado
+16 variavel não existe
+18 a classe não deve ter retorno
+24 tipo de retorno inesperado
+
+
