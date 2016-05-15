@@ -15,6 +15,18 @@ public class SemanticAnalyzer {
 	private SemanticUnit declaringUnit;
 	private ErrorHandler handler;
 	
+	private TreeMap<String, ClassUnit> classes;
+	private TreeMap<String, SemanticUnit> globals;
+	private ClassUnit declaringClassUnit;
+	
+	
+	// ------------------------- global tem um map de classes, variaveis e constantes
+	// --------------- cada class tem um map de metodos
+	// --------- cada metodo tem um map de variaveis
+	
+	
+	
+	
 	public SemanticAnalyzer (LexIO io) {
 		this.tokens = io.getTokens();
 		this.scopeStack = new Stack<>();
@@ -24,6 +36,10 @@ public class SemanticAnalyzer {
 		this.handler = new ErrorHandler();
 		
 		this.scopeStack.push(new Scope(new Token(-1, "GLOBAL", null), null));
+		
+		
+		this.classes = new TreeMap<>();
+		this.globals = new TreeMap<>();
 	}
 	
 	private Token currentToken() {
@@ -117,7 +133,7 @@ public class SemanticAnalyzer {
 			
 			String type = parsePrimitiveType();
 			
-			this.declaringUnit = new SemanticUnit(null, type, SemanticCategory.constante, this.scopeStack.peek());
+			this.declaringUnit = new SemanticUnit(null, type, SemanticCategory.constant, this.scopeStack.peek());
 			
 			parseConstantList();
 		}
@@ -145,7 +161,7 @@ public class SemanticAnalyzer {
 		
 		if(this.currentToken().is(",")) {
 			parseTerminal(",");
-			this.declaringUnit = new SemanticUnit(null, declaringUnit.getType(), SemanticCategory.constante, this.scopeStack.peek());
+			this.declaringUnit = new SemanticUnit(null, declaringUnit.getType(), SemanticCategory.constant, this.scopeStack.peek());
 			parseConstantList();
 		} else if (this.currentToken().is(";")) {
 			this.parseTerminal(";");
@@ -173,7 +189,7 @@ public class SemanticAnalyzer {
 		
 		if(this.currentToken().isPrimitiveType()) {
 			
-			this.declaringUnit = new SemanticUnit(null, this.currentToken().getRepresentation(), SemanticCategory.variavel, this.scopeStack.peek());
+			this.declaringUnit = new SemanticUnit(null, this.currentToken().getRepresentation(), SemanticCategory.variable, this.scopeStack.peek());
 			
 			parseVariableDeclaration();
 			parseVariables();
@@ -226,7 +242,7 @@ public class SemanticAnalyzer {
 			parseTerminal(",");
 			
 			String id = parseIdentifier(DECL);
-			this.declaringUnit = new SemanticUnit(id, this.declaringUnit.getType(), SemanticCategory.variavel, this.scopeStack.peek());
+			this.declaringUnit = new SemanticUnit(id, this.declaringUnit.getType(), SemanticCategory.variable, this.scopeStack.peek());
 			
 			if(isDeclaredLocally(id)) {
 				handler.add(this.currentToken().getLine(), "Erro, variável já declarada");
@@ -272,7 +288,10 @@ public class SemanticAnalyzer {
 		
 		parseTerminal("class");
 		String id = parseIdentifier(DECL);
-		this.declaringUnit = new SemanticUnit(id, null, SemanticCategory.classe, this.scopeStack.peek());
+		
+		
+		
+		this.declaringClassUnit = new ClassUnit(id);
 		if(isDeclaredLocally(id)) {
 			handler.add(this.currentToken().getLine(), "Não foi possível declarar classe - Identificador já declarado");
 		}
@@ -411,7 +430,6 @@ public class SemanticAnalyzer {
 			parseParameter();
 		}
 	}
-	
 	private void parseMethodContents () {
 		// <conteudo_metodo> ::= <comando><conteudo_metodo> | <lambda>
 		if (this.currentToken().isCommand()) {
@@ -421,6 +439,10 @@ public class SemanticAnalyzer {
 	}
 	
 	private void parseReturn() {
+		
+		
+		
+		
 		parseAssignment();
 		parseTerminal(";");
 	}

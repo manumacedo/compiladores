@@ -1,9 +1,6 @@
 
 public enum SemanticCategory {
-	classe,
-	variavel,
-	constante,
-	objeto,
-	metodo,
-	vetor
+	variable,
+	constant,
+	vector
 }

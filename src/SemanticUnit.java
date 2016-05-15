@@ -49,5 +49,9 @@ public class SemanticUnit{
 	public String toString () {
 		return this.getIdentifier() + " " + this.getType() + " " + this.getCategory();
 	}
+
+	public boolean hasSameTypeAs(SemanticUnit semanticUnit) {
+		return this.getType().equals(semanticUnit.getType());
+	}
 	
 }
