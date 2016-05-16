@@ -1,0 +1,16 @@
+void main() {
+
+int a;
+int b;
+bool c;
+float d;
+
+if (a + b) {}
+if (a && b) {}
+if (a < b) {}
+if (c) {}
+if (c == true) {}
+if (d == true) {}
+
+
+}

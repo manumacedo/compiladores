@@ -23,7 +23,6 @@ public class SemanticAnalyzer {
 	private ClassUnit currentClass;
 	private MethodUnit currentMethod;
 	private String currentAssignment;
-	private String currentExpressionId;
 	
 	
 	// ------------------------- global tem um map de classes, variaveis e constantes
@@ -1188,7 +1187,9 @@ public class SemanticAnalyzer {
         parseTerminal("(");
         String type = recExp();
         
-        
+        if(type != "bool") {
+        	handler.add(this.currentToken().getLine(), "Expressão do if deve ser booleana - " + type);
+        }
         parseTerminal(")");
         parseTerminal("{");
         recConteudoEstrutura();
@@ -1249,25 +1250,27 @@ public class SemanticAnalyzer {
     private String recExp() {
     	
     	String type = null;
+    	String id = null;
     	
         switch (this.currentToken().getRepresentation()) {
             case "true":
                 parseTerminal("true");
+                
                 return recComplementoLogico();
             case "false":
                 parseTerminal("false");
                 return recComplementoLogico();
             case "++":
                 parseTerminal("++");
-                parseIdentifier(ACCESS);
-                type = recIdExp();
-                recComplementoAritmetico1();
+                id = parseIdentifier(ACCESS);
+                type = recIdExp(id);
+                recComplementoAritmetico1(type);
                 break;
             case "--":
                 parseTerminal("--");
-                parseIdentifier(ACCESS);
-                type = recIdExp();
-                recComplementoAritmetico1();
+                id = parseIdentifier(ACCESS);
+                type = recIdExp(id);
+                recComplementoAritmetico1(type);
                 break;
             case "(":
                 parseTerminal("(");
@@ -1277,16 +1280,25 @@ public class SemanticAnalyzer {
             default:
                 switch (this.currentToken().getType()) {
                     case identificador:
-                        this.currentExpressionId = parseIdentifier(ACCESS);
-                        type = recIdExpArit();
-                        recComplementoAritmetico1();
+                        id = parseIdentifier(ACCESS);
+                        
+                        if(findIdentifier(id) != null) {
+                        	type = findIdentifier(id).getType();
+                        } else {
+                        	handler.add(this.currentToken().getLine(), "Identificador não declarado - " + id);
+                        }
+                        
+                        recIdExpArit(id);
+                        String rep = recComplementoAritmetico1(type);
+                        if(rep != null)
+                        	type = rep;
+                        
                         break;
                     case inteiro:
                     case decimal:
                         parseTerminal(this.currentToken().getRepresentation());
                         recComplementoAritmetico();
-                        recOpRelacional();
-                        break;
+                        type = recOpRelacional();
                     default:
                         break;
                 }
@@ -1296,33 +1308,37 @@ public class SemanticAnalyzer {
         return type;
     }
 
-    private void recComplementoAritmetico1() {
+    private String recComplementoAritmetico1(String factorType) {
+    	String type = null;
+    	
         switch (this.currentToken().getRepresentation()) {
             case "+":
-                parseTerminal("+");
-                recFatorAritmetico();
-                recOpIdRelacional();
-                break;
             case "-":
-                parseTerminal("-");
-                recFatorAritmetico();
-                recOpIdRelacional();
-                break;
             case "*":
-                parseTerminal("*");
-                recFatorAritmetico();
-                recOpIdRelacional();
-                break;
             case "/":
-                parseTerminal("/");
-                recFatorAritmetico();
-                recOpIdRelacional();
+                parseTerminal(this.currentToken().getRepresentation());
+                type = recFatorAritmetico();
+                
+                if (type != null && !type.equals(factorType)) {
+                	handler.add(this.currentToken().getLine(), "Não é possível operar com tipos diferentes");
+                }
+                	
+                
+                String rep = recOpIdRelacional();
+      
+                if(rep != null)
+                	type = rep;
+                
                 break;
             default:
-                recOpIdLogico();
-                break;
-
+            	String ret = recOpIdLogico();
+            	if(factorType != null && !factorType.equals(ret))
+            		handler.add(this.currentToken().getLine(), "Operação não permitida com tipos diferentes - " + factorType);
+            		
+                return ret;
         }
+        
+        return type;
     }
 
     private String recExpLogica() {
@@ -1351,7 +1367,7 @@ public class SemanticAnalyzer {
                 	handler.add(this.currentToken().getLine(), "Somente inteiros podem ser incrementados - " + id);
                 }
                 
-                type = recIdExp();
+                type = recIdExp(id);
                 recComplementoAritmetico();
                 recOpIdLogico();
                 break;
@@ -1370,7 +1386,7 @@ public class SemanticAnalyzer {
                 }
                 
                 
-                type = recIdExp();
+                type = recIdExp(id);
                 recComplementoAritmetico();
                 recOpIdLogico();
                 break;
@@ -1383,8 +1399,8 @@ public class SemanticAnalyzer {
             default:
                 switch (this.currentToken().getType()) {
                     case identificador:
-                        this.currentExpressionId = parseIdentifier(ACCESS);
-                        type = recIdExpArit();
+                        id = parseIdentifier(ACCESS);
+                        type = recIdExpArit(id);
                         if(!type.equals(recComplementoAritmetico())) {
                         	handler.add(this.currentToken().getLine(), "Tipos inválidos na expressão - " + type);
                         }
@@ -1501,7 +1517,7 @@ public class SemanticAnalyzer {
         }
     }
 
-    private String recIdExp() {
+    private String recIdExp(String id) {
     	String ret;
 
         switch (this.currentToken().getRepresentation()) {
@@ -1510,52 +1526,42 @@ public class SemanticAnalyzer {
                 recParametros();
                 parseTerminal(")");
             case ".":
-                parseTerminal(".");
-                parseIdentifier(ACCESS);
+                parseTerminal(".");                
+                String attr = parseIdentifier(ACCESS);
                 recChamadaMetodo();
-                break;
+                return this.currentClass.getUnit(attr).getType();
             case "[":
                 parseTerminal("[");
                 parseVectorIndex();
                 parseTerminal("]");
-                break;
+                return "vector";
             default:
                 break;
         }
         
-        return null;
+        return findIdentifier(id).getType();
     }
 
-    private void recOpIdLogico() {
+    private String recOpIdLogico() {
+    	
+    	String type;
+    	
         switch (this.currentToken().getRepresentation()) {
             case ">":
-                recOpIdRelacional();
-                break;
             case "<":
-                recOpIdRelacional();
-                break;
             case ">=":
-                recOpIdRelacional();
-                break;
             case "<=":
-                recOpIdRelacional();
-                break;
             case "==":
-                recOpIdRelacional();
-                break;
             case "!=":
-                recOpIdRelacional();
-                break;
+                return recOpIdRelacional();
             case "&&":
                 parseTerminal("&&");
-                recExp();
-                break;
+                return recExp();
             case "||":
                 parseTerminal("||");
-                recExp();
-                break;
+                return recExp();
             default:
-                break;
+            	return null;
         }
     }
 
@@ -1615,7 +1621,7 @@ public class SemanticAnalyzer {
             case "<":
             case ">=":
             case "<=":
-                parseTerminal("<=");
+                parseTerminal(this.currentToken().getRepresentation());
                 type = recExpAritmetica();
                 recOpLogico();
                 break;
@@ -1650,6 +1656,8 @@ public class SemanticAnalyzer {
     }
 
     private String recFatorAritmetico() {
+    	String type = null;
+    	
         switch (this.currentToken().getRepresentation()) {
             case "++":
             case "--":
@@ -1663,21 +1671,35 @@ public class SemanticAnalyzer {
                 return recComplementoAritmetico();
             default:
                 if (this.currentToken().isIdentifier()) {
-                    recIdAritmetico();
-                    return recComplementoAritmetico();
+                    type = recIdAritmetico();
+                    
+                    String rep = recComplementoAritmetico();
+                    
+                    if (rep != null)
+                    	type = rep;
+                    
                 } else if (this.currentToken().isNumber()) {
-                    parseTerminal(this.currentToken().getRepresentation());
-                    return recComplementoAritmetico();
+                    
+                	if(this.currentToken().isInteger())
+                		type = "int";
+                	else if (this.currentToken().isFloat())
+                		type = "float";
+                	
+                	parseTerminal(this.currentToken().getRepresentation());
+                    String rep = recComplementoAritmetico();
+                    if (rep != null)
+                    	type = rep;
                 }
                 break;
         }
         
-        return null;
+        return type;
     }
 
     private String recIdAritmetico() {
         
     	String id;
+    	String type = null;
     	
     	switch (this.currentToken().getRepresentation()) {
             case "++":
@@ -1694,50 +1716,62 @@ public class SemanticAnalyzer {
                 if (this.currentToken().isIdentifier()) {
                     id = parseIdentifier(ACCESS);
                     
-                    return recIdExpArit();
+                    if(findIdentifier(id) !=  null) {
+                    	type = findIdentifier(id).getType();
+                    } else {
+                    	handler.add(this.currentToken().getLine(), "Identificador não declarado - " + id);
+                    }
+                    
+                    recIdExpArit(id);
                 }
         }
     	
-    	return null;
+    	return type;
     }
 
-    private String recIdExpArit() {
+    private String recIdExpArit(String id) {
+    	
+    	String type = null;
+    	
         switch (this.currentToken().getRepresentation()) {
             case "(":
-            	if(!this.currentClass.hasOwnMethod(this.currentExpressionId) &&
-            	   !this.currentClass.hasInheritedMethod(this.currentExpressionId)) {
+            	if(!this.currentClass.hasOwnMethod(id) &&
+            	   !this.currentClass.hasInheritedMethod(id)) {
             		handler.add(this.currentToken().getLine(), "Método não definido");
             	}
 
-                return recIdExp();
+                type = recIdExp(id);
+                break;
             case ".":
             	
-            	if(!this.currentClass.hasOwnAttribute(this.currentExpressionId) &&
-             	   !this.currentClass.hasInheritedAttribute(this.currentExpressionId)) {
+            	if(!this.currentClass.hasOwnAttribute(id) &&
+             	   !this.currentClass.hasInheritedAttribute(id)) {
              			handler.add(this.currentToken().getLine(), "Atributo não definido");
              	}
             
-                return recIdExp();
+                type = recIdExp(id);
+                break;
             case "[":
             	
-            	if(!this.currentMethod.hasVariable(this.currentExpressionId) &&
-            	   !(this.currentMethod.getUnit(this.currentExpressionId).getCategory() == SemanticCategory.vector)) {
+            	if(!this.currentMethod.hasVariable(id) &&
+            	   !(this.currentMethod.getUnit(id).getCategory() == SemanticCategory.vector)) {
             		
             		handler.add(this.currentToken().getLine(), "O identificador acessado não é um vetor");
               	}
             	
-                return recIdExp();
-            case "++":
-                parseTerminal("++");
+                recIdExp(id);
+                type = findIdentifier(id).getType();
                 break;
+            case "++":
             case "--":
-                parseTerminal("--");
+                parseTerminal(this.currentToken().getRepresentation());
+                type = findIdentifier(id).getType();
                 break;
             default:
                 break;
         }
         
-        return null;
+        return type;
     }
 
     private String recComplementoAritmetico() {
