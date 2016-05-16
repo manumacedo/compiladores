@@ -2,9 +2,9 @@ import java.util.ArrayList;
 
 public class ErrorHandler {
 	
-	private class Error {
-		private String message;
-		private int line;
+	class Error {
+		String message;
+		int line;
 		
 		public Error(int line, String message) {
 			this.line = line;
@@ -12,7 +12,7 @@ public class ErrorHandler {
 		}
 	}
 	
-	private ArrayList<Error> errorList;
+	ArrayList<Error> errorList;
 	
 	public ErrorHandler () {
 		this.errorList = new ArrayList<>();
@@ -21,6 +21,8 @@ public class ErrorHandler {
 	public void add(int line, String message) {
 		this.errorList.add(new Error(line+1, message));
 	}
+	
+	
 	
 	public void output () {
 		for (Error err : this.errorList) {

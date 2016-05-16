@@ -1,0 +1,7 @@
+14 Expressão do if deve ser booleana - int
+15 Operação não permitida com tipos diferentes - int
+15 Operação não permitida com tipos diferentes - int
+16 Operação não permitida com tipos diferentes - int
+17 Operação não permitida com tipos diferentes - bool
+19 Operação não permitida com tipos diferentes - float
+21 Não se pode usar new com variáveis que não são objetos

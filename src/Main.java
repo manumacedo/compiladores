@@ -33,7 +33,11 @@ public class Main {
 //					System.err.println( error.getRepresentation() + " " + error.getType() + " " + " " + error.getLine());
 //				}
 				
-				new SemanticAnalyzer(tokens).execute();
+				SemanticAnalyzer analyzer = new SemanticAnalyzer(tokens);
+				analyzer.parseProgram();
+				
+				analyzer.writeErrorOutput(OUT_DIR + "/" + file.getName());
+				
 				
 		}
 	}

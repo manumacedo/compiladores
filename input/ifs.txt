@@ -1,9 +1,15 @@
+class A {
+
+}
+
 void main() {
 
 int a;
 int b;
 bool c;
 float d;
+A obj;
+
 
 if (a + b) {}
 if (a && b) {}
@@ -11,6 +17,9 @@ if (a < b) {}
 if (c) {}
 if (c == true) {}
 if (d == true) {}
+
+new a;
+new obj;
 
 
 }

@@ -1,0 +1,9 @@
+15 Identificador já declarado - a
+19 Constante global não pode ser sobrescrita - b
+22 Constante global não pode ser sobrescrita - a
+25 Tipo de retorno inválido - int
+31 Tipo inválido para tamanho do vetor - 1.3
+31 Tipo inválido para tamanho do vetor - bool
+33 Identificador já declarado - a
+34 Identificador não declarado - c3
+40 Variável tem o mesmo identificador de uma classe - First

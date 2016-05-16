@@ -1,3 +1,6 @@
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Stack;
 import java.util.TreeMap;
@@ -70,7 +73,7 @@ public class SemanticAnalyzer {
 		System.out.println("Parsing " + terminal);
 		Token next = this.nextToken();
 		if(!next.is(terminal)) {
-			System.out.println("Wow, deu ruim. Expected " + terminal + "  got " + next.getRepresentation());
+			System.out.println("Expected " + terminal + "  got " + next.getRepresentation());
 		};
 	}
 	
@@ -98,13 +101,13 @@ public class SemanticAnalyzer {
 			return next.getRepresentation();
 		}
 		else {
-			System.out.println("Wow, deu ruim. Expected Identifier, got " + next.getRepresentation());
+			System.out.println("Expected Identifier, got " + next.getRepresentation());
 		}
 		return null;
 	}
 	
 	
-	private void parseProgram() {
+	public void parseProgram() {
 		// <arquivo> ::= <constantes> <variaveis> <pre_main>
 		parseConstants();
 		parseVariables();
@@ -150,9 +153,9 @@ public class SemanticAnalyzer {
 		if(currentClass != null) {
 			
 			if(globals.containsKey(id) && globals.get(id).getCategory() == SemanticCategory.constant ) {
-				handler.add(this.currentToken().getLine(), "Constante global n„o pode ser sobrescrita - " + id);
+				handler.add(this.currentToken().getLine(), "Constante global n√£o pode ser sobrescrita - " + id);
 			} else if(currentClass.hasOwnAttribute(id)) {
-				handler.add(this.currentToken().getLine(), "Identificador j· declarado - " + id);
+				handler.add(this.currentToken().getLine(), "Identificador j√° declarado - " + id);
 			} else {
 				this.declaringUnit.setIdentifier(id);
 				currentClass.addAttribute(this.declaringUnit);
@@ -160,7 +163,7 @@ public class SemanticAnalyzer {
 			}
 			
 		} else if(this.globals.containsKey(id)) {
-			handler.add(this.currentToken().getLine(), "Identificador j· declarado - " + id);
+			handler.add(this.currentToken().getLine(), "Identificador j√° declarado - " + id);
 		} else {
 			//this.scopeStack.peek().insertUnit(declaringUnit);
 			globals.put(id, this.declaringUnit);
@@ -194,7 +197,7 @@ public class SemanticAnalyzer {
 			System.out.println("Parsing primitive assignment " + next.getRepresentation());
 		
 			if(!next.hasType(declaringUnit.getType())) {
-				handler.add(this.currentToken().getLine(), "Tipo inv·lido na atribuiÁ„o da constante - " + declaringUnit.getType());
+				handler.add(this.currentToken().getLine(), "Tipo inv√°lido na atribui√ß√£o da constante - " + declaringUnit.getType());
 			}
 			
 		} else 
@@ -276,7 +279,7 @@ public class SemanticAnalyzer {
 		String id = parseIdentifier(DECL);
 		
 		if(globals.containsKey(id)) {
-			handler.add(this.currentToken().getLine(), "Identificador j· declarado - " + id);
+			handler.add(this.currentToken().getLine(), "Identificador j√° declarado - " + id);
 		} else {
 			this.declaringUnit.setIdentifier(id);
 			this.scopeStack.peek().insertUnit(declaringUnit);
@@ -297,11 +300,11 @@ public class SemanticAnalyzer {
 			this.declaringUnit = new SemanticUnit(id, this.declaringUnit.getType(), SemanticCategory.variable, this.scopeStack.peek());
 			
 			if(classes.containsKey(id)) {
-				handler.add(this.currentToken().getLine(), "Vari·vel tem o mesmo identificador de uma classe - " + id);
+				handler.add(this.currentToken().getLine(), "Vari√°vel tem o mesmo identificador de uma classe - " + id);
 			}
 			
 			if(isDeclaredLocally(id)) {
-				handler.add(this.currentToken().getLine(), "Identificador j· declarado - " + id);
+				handler.add(this.currentToken().getLine(), "Identificador j√° declarado - " + id);
 			}
 			
 			parseVariableList();
@@ -351,7 +354,7 @@ public class SemanticAnalyzer {
 		this.currentClass = new ClassUnit(id);
 		
 		if(this.classes.containsKey(id) || this.globals.containsKey(id)) {
-			handler.add(this.currentToken().getLine(), "Identificador j· declarado - " + id);
+			handler.add(this.currentToken().getLine(), "Identificador j√° declarado - " + id);
 		} else {
 			this.classes.put(id, currentClass);
 		}
@@ -370,9 +373,9 @@ public class SemanticAnalyzer {
 			String id = parseIdentifier(ACCESS);
 			
 			if(!this.classes.containsKey(id)) {
-				handler.add(this.currentToken().getLine(), "Identificador da heranÁa n„o declarado - " + id);
+				handler.add(this.currentToken().getLine(), "Identificador da heran√ßa n√£o declarado - " + id);
 			} else if (id.equals(currentClass.getIdentifier())) {
-				handler.add(this.currentToken().getLine(), "Classe n„o pode herdar de si mesma");
+				handler.add(this.currentToken().getLine(), "Classe n√£o pode herdar de si mesma");
 			} else {
 				this.currentClass.inheritFrom(this.classes.get(id));
 			}
@@ -403,13 +406,13 @@ public class SemanticAnalyzer {
 			this.declaringUnit = new SemanticUnit(id, type, null, null);
 			
 			if(classes.containsKey(id)) {
-				handler.add(this.currentToken().getLine(), "Vari·vel tem o mesmo identificador de uma classe - " + id);
+				handler.add(this.currentToken().getLine(), "Vari√°vel tem o mesmo identificador de uma classe - " + id);
 			}
 			
 			if(currentClass.hasOwnAttribute(id)) {
-				handler.add(this.currentToken().getLine(), "Identificador j· declarado - " + id);
+				handler.add(this.currentToken().getLine(), "Identificador j√° declarado - " + id);
 			} else if (currentClass.hasInheritedAttribute(id)) {
-				handler.add(this.currentToken().getLine(), "Identificador j· declarado pela heranÁa - " + id);
+				handler.add(this.currentToken().getLine(), "Identificador j√° declarado pela heran√ßa - " + id);
 			}
 			
 			parseIdentifierExtension();
@@ -420,13 +423,13 @@ public class SemanticAnalyzer {
 			this.currentMethod = new MethodUnit(id);
 			
 			if(currentClass.hasOwnMethod(id) || currentClass.hasOwnAttribute(id)) {
-				handler.add(this.currentToken().getLine(), "Identificador j· declarado - " + id);
+				handler.add(this.currentToken().getLine(), "Identificador j√° declarado - " + id);
 			} else if(currentClass.hasInheritedAttribute(id)) {
-				handler.add(this.currentToken().getLine(), "Identificador j· declarado pela heranÁa - " + id);
+				handler.add(this.currentToken().getLine(), "Identificador j√° declarado pela heran√ßa - " + id);
 			} else if (currentClass.hasInheritedMethod(id)) {
 				
 				if (!this.currentMethod.equalsTo(this.currentClass.getInheritedMethod(id))) {
-					handler.add(this.currentToken().getLine(), "Override inv·lido, assinaturas dos mÈtodos n„o conferem");
+					handler.add(this.currentToken().getLine(), "Override inv√°lido, assinaturas dos M√©todos n√£o conferem");
 				}
 				
 			} else {
@@ -467,7 +470,7 @@ public class SemanticAnalyzer {
 				
 				if(this.currentClass.hasInheritedMethod(declaringIdentifier)) {
 					if (!this.currentMethod.equalsTo(this.currentClass.getInheritedMethod(declaringIdentifier))) {
-						handler.add(this.currentToken().getLine(), "Override inv·lido, assinaturas dos mÈtodos n„o conferem");
+						handler.add(this.currentToken().getLine(), "Override inv√°lido, assinaturas dos M√©todos n√£o conferem");
 					}
 				}  else {
 					this.currentClass.addMethod(this.currentMethod);
@@ -485,9 +488,9 @@ public class SemanticAnalyzer {
 			case ";":
 				
 				if(classes.containsKey(declaringIdentifier)) {
-					handler.add(this.currentToken().getLine(), "Vari·vel tem o mesmo identificador de uma classe - " + declaringIdentifier);
+					handler.add(this.currentToken().getLine(), "Vari√°vel tem o mesmo identificador de uma classe - " + declaringIdentifier);
 				} else if (globals.containsKey(declaringIdentifier) && globals.get(declaringIdentifier).getCategory() == SemanticCategory.constant) {
-					handler.add(this.currentToken().getLine(), "Constante global n„o pode ser sobrescrita - " + declaringIdentifier);
+					handler.add(this.currentToken().getLine(), "Constante global n√£o pode ser sobrescrita - " + declaringIdentifier);
 				} else {
 					this.currentClass.addAttribute(this.declaringUnit);
 				}
@@ -502,7 +505,7 @@ public class SemanticAnalyzer {
 		if(this.currentToken().isNumber()) {
 			
 			if(!currentToken().isInteger()) {
-				handler.add(this.currentToken().getLine(), "Tipo inv·lido para tamanho do vetor - " + currentToken().getRepresentation());
+				handler.add(this.currentToken().getLine(), "Tipo inv√°lido para tamanho do vetor - " + currentToken().getRepresentation());
 			}
 			
 			parseTerminal(this.currentToken().getRepresentation());
@@ -513,9 +516,9 @@ public class SemanticAnalyzer {
 			String id = parseIdentifier(ACCESS);
 			
 			if(!isDeclaredAnywhere(id)) {
-				handler.add(this.currentToken().getLine(), "Identificador n„o declarado - " + id);
+				handler.add(this.currentToken().getLine(), "Identificador n√£o declarado - " + id);
 			} else if (!this.findIdentifier(id).getType().equals("int")){
-				handler.add(this.currentToken().getLine(), "Tipo inv·lido para tamanho do vetor - " + this.findIdentifier(id).getType());
+				handler.add(this.currentToken().getLine(), "Tipo inv√°lido para tamanho do vetor - " + this.findIdentifier(id).getType());
 			}
 		}
 		
@@ -535,7 +538,7 @@ public class SemanticAnalyzer {
 			
 			if(this.currentMethod != null) { // im on a method
 				if(this.currentMethod.hasVariable(id)) {
-					handler.add(this.currentToken().getLine(), "Identificador j· declarado - " + id);
+					handler.add(this.currentToken().getLine(), "Identificador j√° declarado - " + id);
 				} else {
 					this.currentMethod.addVariable(this.declaringUnit);
 				}
@@ -571,7 +574,7 @@ public class SemanticAnalyzer {
 			String id = parseIdentifier(ACCESS);
 			
 			if(!classes.containsKey(id)) {
-				handler.add(this.currentToken().getLine(), "Identificador n„o declarado - " + id);
+				handler.add(this.currentToken().getLine(), "Identificador n√£o declarado - " + id);
 			}
 			
 			return id;
@@ -603,7 +606,7 @@ public class SemanticAnalyzer {
 		
 		if ((globalConst != null) || (localConst != null)){
 			
-			handler.add(this.currentToken().getLine(), "Par‚metros n„o podem ter o mesmo nome que constantes - " + parameter.getIdentifier());
+			handler.add(this.currentToken().getLine(), "Par√¢metros n√£o podem ter o mesmo nome que constantes - " + parameter.getIdentifier());
 		}
 		
 		this.currentMethod.addVariable(parameter);
@@ -630,9 +633,9 @@ public class SemanticAnalyzer {
 	private void parseReturn() {
 		String returnType = parseAssignment();
 		if(returnType == null) {
-			//handler.add(this.currentToken().getLine(), "Tipo de retorno inv·lido - " + returnType);
+			//handler.add(this.currentToken().getLine(), "Tipo de retorno inv√°lido - " + returnType);
 		} else if(!this.currentMethod.getReturnType().equals(returnType)) {
-			handler.add(this.currentToken().getLine(), "Tipo de retorno inv·lido - " + returnType);
+			handler.add(this.currentToken().getLine(), "Tipo de retorno inv√°lido - " + returnType);
 		}
 		
 		parseTerminal(";");
@@ -655,9 +658,9 @@ public class SemanticAnalyzer {
 			this.declaringUnit = new SemanticUnit(id, type, isVector ? SemanticCategory.vector : SemanticCategory.variable, null);
 			
 			if(this.currentMethod.hasVariable(id)) {
-				handler.add(this.currentToken().getLine(), "Identificador j· declarado - " + id);
+				handler.add(this.currentToken().getLine(), "Identificador j√° declarado - " + id);
 			} else if (globals.containsKey(id) && globals.get(id).getCategory() == SemanticCategory.constant) {
-				handler.add(this.currentToken().getLine(), "Constante global n„o pode ser sobrescrita - " + id);
+				handler.add(this.currentToken().getLine(), "Constante global n√£o pode ser sobrescrita - " + id);
 			} else {
 				this.currentMethod.addVariable(this.declaringUnit);
 			}
@@ -675,6 +678,8 @@ public class SemanticAnalyzer {
 		} else if (this.currentToken().is("while")) {
 			
 			recWhile();
+		} else if (this.currentToken().is("new")) {
+			recInicializaObjeto();
 		}
 		
 	}
@@ -684,7 +689,7 @@ public class SemanticAnalyzer {
 		
 		SemanticUnit unit = this.findIdentifier(this.currentAssignment);
 		if(unit == null) {
-			handler.add(this.currentToken().getLine(), "Identificador n„o declarado - " + this.currentAssignment);
+			handler.add(this.currentToken().getLine(), "Identificador n√£o declarado - " + this.currentAssignment);
 		}
 		
 		switch (this.currentToken().getRepresentation()) {
@@ -702,13 +707,13 @@ public class SemanticAnalyzer {
 			
 			case "=":
 				if(unit != null && unit.getCategory() == SemanticCategory.constant) {
-					handler.add(this.currentToken().getLine(), "Constante n„o pode ser atribuÌda - " + unit.getIdentifier());
+					handler.add(this.currentToken().getLine(), "Constante n√£o pode ser atribu√≠da - " + unit.getIdentifier());
 				}
 				parseTerminal("=");
 				String type = parseAssignment();
 				
 				if (unit != null && (unit.getCategory() != SemanticCategory.constant) && !unit.getType().equals(type)) {
-					handler.add(this.currentToken().getLine(), "Tipo inv·lido na atribuiÁ„o - " + type);
+					handler.add(this.currentToken().getLine(), "Tipo inv√°lido na atribui√ß√£o - " + type);
 				}
 				
 			break;
@@ -922,12 +927,12 @@ public class SemanticAnalyzer {
                 parseTerminal(this.currentToken().getRepresentation());
                 id = parseIdentifier(ACCESS);
                 if(!this.currentMethod.hasVariable(id)) {
-                	handler.add(this.currentToken().getLine(), "Identificador n„o declarado - " + id);
+                	handler.add(this.currentToken().getLine(), "Identificador n√£o declarado - " + id);
                 	return null;
                 }
                 
                 if(!this.currentMethod.getUnit(id).getType().equals("int")) {
-                	handler.add(this.currentToken().getLine(), "Incremento inv·lido, vari·vel n„o È um inteiro - " + id);
+                	handler.add(this.currentToken().getLine(), "Incremento inv√°lido, vari√°vel n√£o √© um inteiro - " + id);
                 }
                 
                 return recOperacao();
@@ -941,7 +946,7 @@ public class SemanticAnalyzer {
                     if(unit != null)
                     	return unit.getType();
                     else
-                    	handler.add(this.currentToken().getLine(), "Identificador n„o declarado - " + id);
+                    	handler.add(this.currentToken().getLine(), "Identificador n√£o declarado - " + id);
                 }
         }
 		
@@ -1068,9 +1073,19 @@ public class SemanticAnalyzer {
     private void recInicializaObjeto() {
         parseTerminal("new");
         String id = parseIdentifier(ACCESS);
+        
         if(!isDeclaredAnywhere(id)) {
-        	handler.add(this.currentToken().getLine(), "Identificador n„o declarado - " + id);
+        	handler.add(this.currentToken().getLine(), "Identificador n√£o declarado - " + id);
+        } else {
+        	
+        	SemanticUnit unit = findIdentifier(id);
+        	
+        	if(!classes.containsKey(unit.getType())) {
+        		handler.add(this.currentToken().getLine(), "n√£o se pode usar new com vari√°veis que n√£o s√£o objetos");
+        	}
         }
+        
+        
         
         parseTerminal(";");
     }
@@ -1187,8 +1202,8 @@ public class SemanticAnalyzer {
         parseTerminal("(");
         String type = recExp();
         
-        if(type != "bool") {
-        	handler.add(this.currentToken().getLine(), "Express„o do if deve ser booleana - " + type);
+        if(!type.equals("bool")) {
+        	handler.add(this.currentToken().getLine(), "Express√£o do if deve ser booleana - " + type);
         }
         parseTerminal(")");
         parseTerminal("{");
@@ -1226,7 +1241,6 @@ public class SemanticAnalyzer {
                 recWrite();
                 break;
             case "new":
-                recInicializaObjeto();
                 recInicializaObjeto();
                 break;
             case "if":
@@ -1285,7 +1299,7 @@ public class SemanticAnalyzer {
                         if(findIdentifier(id) != null) {
                         	type = findIdentifier(id).getType();
                         } else {
-                        	handler.add(this.currentToken().getLine(), "Identificador n„o declarado - " + id);
+                        	handler.add(this.currentToken().getLine(), "Identificador n√£o declarado - " + id);
                         }
                         
                         recIdExpArit(id);
@@ -1320,7 +1334,7 @@ public class SemanticAnalyzer {
                 type = recFatorAritmetico();
                 
                 if (type != null && !type.equals(factorType)) {
-                	handler.add(this.currentToken().getLine(), "N„o È possÌvel operar com tipos diferentes");
+                	handler.add(this.currentToken().getLine(), "n√£o √© poss√≠vel operar com tipos diferentes");
                 }
                 	
                 
@@ -1333,7 +1347,7 @@ public class SemanticAnalyzer {
             default:
             	String ret = recOpIdLogico();
             	if(factorType != null && !factorType.equals(ret))
-            		handler.add(this.currentToken().getLine(), "OperaÁ„o n„o permitida com tipos diferentes - " + factorType);
+            		handler.add(this.currentToken().getLine(), "Opera√ß√£o n√£o permitida com tipos diferentes - " + factorType);
             		
                 return ret;
         }
@@ -1358,11 +1372,11 @@ public class SemanticAnalyzer {
                 
                 id = parseIdentifier(ACCESS);
                 if(findIdentifier(id) == null) {
-                	handler.add(this.currentToken().getLine(), "Identificador n„o declarado - " + id);
+                	handler.add(this.currentToken().getLine(), "Identificador n√£o declarado - " + id);
                 } else if (findIdentifier(id).getCategory() == SemanticCategory.constant) {
-                	handler.add(this.currentToken().getLine(), "Constantes n„o podem ser incrementadas - " + id);
+                	handler.add(this.currentToken().getLine(), "Constantes n√£o podem ser incrementadas - " + id);
                 } else if (findIdentifier(id).getCategory() == SemanticCategory.vector) {
-                	handler.add(this.currentToken().getLine(), "Vetores n„o podem ser incrementados - " + id);
+                	handler.add(this.currentToken().getLine(), "Vetores n√£o podem ser incrementados - " + id);
                 } else if (!findIdentifier(id).getType().equals("int")) {
                 	handler.add(this.currentToken().getLine(), "Somente inteiros podem ser incrementados - " + id);
                 }
@@ -1376,11 +1390,11 @@ public class SemanticAnalyzer {
                 id = parseIdentifier(ACCESS);
                 
                 if(findIdentifier(id) == null) {
-                	handler.add(this.currentToken().getLine(), "Identificador n„o declarado - " + id);
+                	handler.add(this.currentToken().getLine(), "Identificador n√£o declarado - " + id);
                 } else if (findIdentifier(id).getCategory() == SemanticCategory.constant) {
-                	handler.add(this.currentToken().getLine(), "Constantes n„o podem ser incrementadas - " + id);
+                	handler.add(this.currentToken().getLine(), "Constantes n√£o podem ser incrementadas - " + id);
                 } else if (findIdentifier(id).getCategory() == SemanticCategory.vector) {
-                	handler.add(this.currentToken().getLine(), "Vetores n„o podem ser incrementados - " + id);
+                	handler.add(this.currentToken().getLine(), "Vetores n√£o podem ser incrementados - " + id);
                 } else if (!findIdentifier(id).getType().equals("int")) {
                 	handler.add(this.currentToken().getLine(), "Somente inteiros podem ser incrementados - " + id);
                 }
@@ -1402,7 +1416,7 @@ public class SemanticAnalyzer {
                         id = parseIdentifier(ACCESS);
                         type = recIdExpArit(id);
                         if(!type.equals(recComplementoAritmetico())) {
-                        	handler.add(this.currentToken().getLine(), "Tipos inv·lidos na express„o - " + type);
+                        	handler.add(this.currentToken().getLine(), "Tipos inv√°lidos na express√°o - " + type);
                         }
                         recOpIdLogico();
                         break;
@@ -1553,13 +1567,16 @@ public class SemanticAnalyzer {
             case "<=":
             case "==":
             case "!=":
-                return recOpIdRelacional();
+                recOpIdRelacional();
+                return "bool";
             case "&&":
                 parseTerminal("&&");
-                return recExp();
+                 recExp();
+                 return "bool";
             case "||":
                 parseTerminal("||");
-                return recExp();
+                recExp();
+                return "bool";
             default:
             	return null;
         }
@@ -1709,7 +1726,7 @@ public class SemanticAnalyzer {
                 id = parseIdentifier(ACCESS);
                 
                 if(!currentMethod.getUnit(id).getType().equals("int")) {
-                	handler.add(this.currentToken().getLine(), "Incremento inv·lido, vari·vel n„o È um inteiro - " + id);                	
+                	handler.add(this.currentToken().getLine(), "Incremento inv√°lido, vari√°vel n√£o √© um inteiro - " + id);                	
                 }
                 return this.currentMethod.getUnit(id).getType();
             default:
@@ -1719,7 +1736,7 @@ public class SemanticAnalyzer {
                     if(findIdentifier(id) !=  null) {
                     	type = findIdentifier(id).getType();
                     } else {
-                    	handler.add(this.currentToken().getLine(), "Identificador n„o declarado - " + id);
+                    	handler.add(this.currentToken().getLine(), "Identificador n√£o declarado - " + id);
                     }
                     
                     recIdExpArit(id);
@@ -1737,7 +1754,7 @@ public class SemanticAnalyzer {
             case "(":
             	if(!this.currentClass.hasOwnMethod(id) &&
             	   !this.currentClass.hasInheritedMethod(id)) {
-            		handler.add(this.currentToken().getLine(), "MÈtodo n„o definido");
+            		handler.add(this.currentToken().getLine(), "M√©todo n√£o definido");
             	}
 
                 type = recIdExp(id);
@@ -1746,7 +1763,7 @@ public class SemanticAnalyzer {
             	
             	if(!this.currentClass.hasOwnAttribute(id) &&
              	   !this.currentClass.hasInheritedAttribute(id)) {
-             			handler.add(this.currentToken().getLine(), "Atributo n„o definido");
+             			handler.add(this.currentToken().getLine(), "Atributo n√£o definido");
              	}
             
                 type = recIdExp(id);
@@ -1756,7 +1773,7 @@ public class SemanticAnalyzer {
             	if(!this.currentMethod.hasVariable(id) &&
             	   !(this.currentMethod.getUnit(id).getCategory() == SemanticCategory.vector)) {
             		
-            		handler.add(this.currentToken().getLine(), "O identificador acessado n„o È um vetor");
+            		handler.add(this.currentToken().getLine(), "O identificador acessado n√£o √© um vetor");
               	}
             	
                 recIdExp(id);
@@ -1797,131 +1814,40 @@ public class SemanticAnalyzer {
 		switch (declarationType) {
 			case "int":
 				if(!nextToken.isInteger())
-					addError("Tipo inv·lido, inteiro esperado", currentToken.getLine());
+					addError("Tipo inv√°lido, inteiro esperado", currentToken.getLine());
 			break;
 			
 			case "float":
 				if(!nextToken.isFloat())
-					addError("Tipo inv·lido, decimal esperado", currentToken.getLine());
+					addError("Tipo inv√°lido, decimal esperado", currentToken.getLine());
 			break;
 			
 			case "string":
 				if(!nextToken.isString())
-					addError("Tipo inv·lido, cadeia constante esperada", currentToken.getLine());
+					addError("Tipo inv√°lido, cadeia constante esperada", currentToken.getLine());
 			break;
 			
 			case "char":
 				if(!nextToken.isChar())
-					addError("Tipo inv·lido, caractere constante esperado", currentToken.getLine());
+					addError("Tipo inv√°lido, caractere constante esperado", currentToken.getLine());
 			break;
 			
 		}
 	}
 
-	private void checkTypeResolvingObjects (Token assignee, Token currentToken, Token nextToken) {
-		
-	}
-	
-	
-	
-	
-	
-	public void execute() {
-		this.parseProgram();
-		/*Token global = new Token(0, "global", TokenType.global);
-		scopeTree.put(global, new Scope(global, null));
-		pushScope(global);
-		
-		
-		Stack <String> delimiters = new Stack<>();
-		
-		
-		boolean isDeclaringIdentifier = false;
-		boolean isDeclaringMethod = false;
-		boolean isDeclaringMethodParameters = false;
-		boolean isCallingMethod = false;
-		boolean isAssigningIdentifier = false;
-		boolean isDeclaringConstant = false;
-		boolean isDeclaringClass = false;
-		Declaration currentDeclaration = null;
-		
-		while (this.currentTokenIndex < this.tokens.size()) {
-			Token currentToken = this.nextToken();
+	public void writeErrorOutput(String filename) {
+		PrintWriter writer;
+		try {
+			writer = new PrintWriter(filename, "UTF-8");
 			
-			
-			System.out.println(currentToken.getRepresentation());
-			
-			switch (currentToken.getType()) {
-			case cadeia_constante:
-				break;
-			case caractere_constante:
-				break;
-			case delimitador:
-				
-				if(currentToken.is ("{"))
-					delimiters.push("{");
-				
-				
-				
-				if(currentToken.is("}")) {
-					delimiters.pop();
-					
-					if(delimiters.empty()) {
-						isDeclaringConstant = false;
-						isDeclaringMethod = false;
-						isDeclaringClass = false;
-					}
-				}
-				
-				break;
-			case global:
-				break;
-			case identificador:
-				
-				if(isDeclaringConstant) {
-					
-					
-				} else {
-					if(this.lookAhead().is("(")  && isDeclaringIdentifier) {
-						isDeclaringMethod = true;
-					}
-				}
-				
-				break;
-			case inteiro:
-				
-				break;
-			case decimal:
-				break;
-			case operador:
-				if(isDeclaringConstant) { // atribuiÁ„o na declaraÁ„o
-					if(currentToken.is("=")) {
-						this.checkType(currentDeclaration, currentToken);
-					}
-				} else { // atribuiÁ„o no cÛdigo
-					this.checkTypeResolvingObjects(currentDeclaration, currentToken);					
-				}
-				break;
-			case palavra_reservada:
-				
-				if(currentToken.is("const")) {
-					isDeclaringConstant = true;
-				}
-				
-				if(currentToken.isPrimitiveType()) {
-					currentDeclaration = new Declaration(currentToken.getRepresentation(), null);
-					isDeclaringIdentifier = true;
-				}
-				
-				break;
-			default:
+			for (ErrorHandler.Error error : handler.errorList) {
+				writer.println(error.line + " " + error.message);
 			}
 			
-			
-		}
-		*/
+			writer.close();
 		
+		} catch (FileNotFoundException | UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
 	}
-	
-	
 }
